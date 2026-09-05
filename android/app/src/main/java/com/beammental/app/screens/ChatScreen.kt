@@ -29,10 +29,8 @@ import androidx.compose.ui.unit.sp
 import com.beammental.app.data.Api
 import com.beammental.app.data.ChatMessage
 import com.beammental.app.data.Locator
-import com.beammental.app.ui.effects.BeamMark
-import com.beammental.app.ui.effects.ThinkingOrb
+import com.beammental.app.ui.effects.MascotBlob
 import com.beammental.app.ui.theme.BeamColors
-import com.beammental.app.ui.theme.BeamGradient
 import kotlinx.coroutines.launch
 
 private const val CRISIS_TEXT =
@@ -99,7 +97,7 @@ fun ChatScreen(onSettings: () -> Unit) {
             Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            BeamMark(22.dp)
+            MascotBlob(modifier = Modifier.size(28.dp), blobSize = 28.dp)
             Spacer(Modifier.width(8.dp))
             Text("Beam", fontWeight = FontWeight.SemiBold, color = BeamColors.Mist)
             Text(" · $name", color = BeamColors.Fog, fontSize = 14.sp)
@@ -129,7 +127,7 @@ fun ChatScreen(onSettings: () -> Unit) {
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
                 ) {
-                    Box(Modifier.size(76.dp)) { ThinkingOrb(Modifier.fillMaxSize(), orbSize = 76f) }
+                    MascotBlob(modifier = Modifier.size(96.dp), blobSize = 96.dp)
                     Spacer(Modifier.height(16.dp))
                     Text("Ahoj, $name.", color = BeamColors.Mist, fontWeight = FontWeight.Medium)
                     Spacer(Modifier.height(6.dp))
@@ -174,7 +172,7 @@ fun ChatScreen(onSettings: () -> Unit) {
                 if (busy) {
                     item {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(Modifier.size(34.dp)) { ThinkingOrb(Modifier.fillMaxSize(), orbSize = 34f) }
+                            MascotBlob(modifier = Modifier.size(36.dp), blobSize = 36.dp, thinking = true)
                             Spacer(Modifier.width(10.dp))
                             Text("Premýšľam…", color = BeamColors.Fog, fontSize = 14.sp)
                         }
@@ -232,7 +230,7 @@ fun ChatScreen(onSettings: () -> Unit) {
                     .size(48.dp)
                     .alpha(if (enabled) 1f else 0.5f)
                     .background(
-                        Brush.linearGradient(BeamGradient),
+                        Color.White,
                         RoundedCornerShape(16.dp),
                     )
                     .clickable(enabled = enabled) { send() },

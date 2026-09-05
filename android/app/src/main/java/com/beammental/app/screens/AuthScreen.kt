@@ -31,10 +31,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.beammental.app.data.Locator
 import com.beammental.app.ui.effects.BeamBackground
-import com.beammental.app.ui.effects.BeamMark
+import com.beammental.app.ui.effects.MascotBlob
 import com.beammental.app.ui.effects.beamBorder
 import com.beammental.app.ui.theme.BeamColors
-import com.beammental.app.ui.theme.BeamGradient
 import kotlinx.coroutines.launch
 
 @Composable
@@ -74,7 +73,7 @@ fun AuthScreen(onAuthed: (onboarded: Boolean) -> Unit) {
                 verticalArrangement = Arrangement.Center,
             ) {
                 Spacer(Modifier.height(40.dp))
-                BeamMark(30.dp)
+                MascotBlob(modifier = Modifier.size(30.dp), blobSize = 30.dp)
                 Spacer(Modifier.height(6.dp))
                 Row {
                     Text("Beam", fontSize = 24.sp, fontWeight = FontWeight.SemiBold, color = BeamColors.Mist)
@@ -97,7 +96,7 @@ fun AuthScreen(onAuthed: (onboarded: Boolean) -> Unit) {
                             modifier = Modifier
                                 .weight(1f)
                                 .background(
-                                    if (mode == i) Brush.horizontalGradient(BeamGradient) else Brush.horizontalGradient(
+                                    if (mode == i) Brush.horizontalGradient(listOf(Color.White, Color.White)) else Brush.horizontalGradient(
                                         listOf(Color.Transparent, Color.Transparent)
                                     ),
                                     RoundedCornerShape(20.dp),
@@ -152,7 +151,7 @@ fun AuthScreen(onAuthed: (onboarded: Boolean) -> Unit) {
                             .fillMaxSize()
                             .alpha(if (busy) 0.5f else 1f)
                             .background(
-                                Brush.horizontalGradient(BeamGradient),
+                                Color.White,
                                 RoundedCornerShape(14.dp),
                             ),
                         contentAlignment = Alignment.Center,

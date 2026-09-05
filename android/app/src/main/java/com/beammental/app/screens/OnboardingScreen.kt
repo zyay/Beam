@@ -36,11 +36,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.beammental.app.data.Locator
-import com.beammental.app.ui.effects.BeamMark
-import com.beammental.app.ui.effects.ThinkingOrb
+import com.beammental.app.ui.effects.MascotBlob
 import com.beammental.app.ui.effects.beamBorder
 import com.beammental.app.ui.theme.BeamColors
-import com.beammental.app.ui.theme.BeamGradient
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonPrimitive
@@ -109,11 +107,11 @@ fun OnboardingScreen(onDone: () -> Unit) {
                 Modifier
                     .fillMaxWidth((step + 1) / 7f)
                     .fillMaxHeight()
-                    .background(Brush.horizontalGradient(BeamGradient), RoundedCornerShape(2.dp)),
+                    .background(Color.White, RoundedCornerShape(2.dp)),
             )
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-            BeamMark(22.dp)
+            MascotBlob(modifier = Modifier.size(24.dp), blobSize = 24.dp)
         }
 
         Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
@@ -193,7 +191,7 @@ fun OnboardingScreen(onDone: () -> Unit) {
                                 Modifier.fillMaxWidth().beamBorder().background(BeamColors.Card, RoundedCornerShape(20.dp)).padding(18.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Box(Modifier.size(56.dp)) { ThinkingOrb(Modifier.fillMaxSize(), orbSize = 56f) }
+                                MascotBlob(modifier = Modifier.size(56.dp), blobSize = 56.dp)
                                 Spacer(Modifier.width(14.dp))
                                 Column {
                                     Text("$name · ${MOODS.first { it.first == mood }.second}", color = BeamColors.Mist, fontSize = 15.sp)
@@ -239,7 +237,7 @@ fun OnboardingScreen(onDone: () -> Unit) {
                     Modifier
                         .fillMaxSize()
                         .background(
-                            Brush.horizontalGradient(BeamGradient),
+                            Color.White,
                             RoundedCornerShape(14.dp),
                         ),
                     contentAlignment = Alignment.Center,

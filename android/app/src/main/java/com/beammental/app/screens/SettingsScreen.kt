@@ -25,7 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.beammental.app.data.Locator
-import com.beammental.app.ui.effects.BeamMark
+import com.beammental.app.ui.effects.MascotBlob
 import com.beammental.app.ui.effects.beamBorder
 import com.beammental.app.ui.theme.BeamColors
 import kotlinx.coroutines.launch
@@ -54,7 +54,7 @@ fun SettingsScreen(onBack: () -> Unit, onLoggedOut: () -> Unit) {
                 modifier = Modifier.size(20.dp).clickable(onClick = onBack),
             )
             Spacer(Modifier.weight(1f))
-            BeamMark(22.dp)
+            MascotBlob(modifier = Modifier.size(24.dp), blobSize = 24.dp)
         }
 
         Spacer(Modifier.height(24.dp))
