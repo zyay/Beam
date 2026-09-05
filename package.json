@@ -9,6 +9,8 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@bible-strong/avatar-core": "^0.1.0",
+    "@bible-strong/avatar-react": "^0.1.0",
     "@gsap/react": "^2.1.2",
     "@phosphor-icons/react": "^2.1.10",
     "@vercel/postgres": "^0.10.0",

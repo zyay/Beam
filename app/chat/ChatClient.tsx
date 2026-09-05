@@ -11,7 +11,9 @@ import {
   Warning,
 } from "@phosphor-icons/react";
 import { motion, AnimatePresence } from "framer-motion";
-import BeamMark from "@/components/BeamMark";
+import dynamic from "next/dynamic";
+
+const Mascot = dynamic(() => import("@/components/mascot/Mascot"), { ssr: false });
 import ThinkingOrb from "@/components/effects/ThinkingOrb";
 
 type Msg = { role: "user" | "assistant"; content: string; crisis?: boolean };
@@ -105,7 +107,9 @@ export default function ChatClient({ name }: { name: string }) {
       {/* header */}
       <header className="flex items-center justify-between border-b border-line py-3.5">
         <div className="flex items-center gap-2">
-          <BeamMark size={22} />
+          <span className="block h-8 w-8 overflow-hidden rounded-full bg-white/5">
+            <Mascot size={32} animation="idle" />
+          </span>
           <span className="font-semibold tracking-tight">Beam</span>
           <span className="text-sm text-fog">· {name}</span>
         </div>
@@ -131,7 +135,9 @@ export default function ChatClient({ name }: { name: string }) {
       <div ref={scrollRef} className="flex-1 overflow-y-auto py-5">
         {messages.length === 0 && (
           <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
-            <ThinkingOrb size={72} />
+            <span className="block h-28 w-28 overflow-hidden rounded-full">
+              <Mascot size={112} animation="idle" />
+            </span>
             <div>
               <p className="font-medium text-mist">Ahoj, {name}.</p>
               <p className="mt-1 max-w-[320px] text-sm leading-relaxed text-fog">
@@ -170,7 +176,9 @@ export default function ChatClient({ name }: { name: string }) {
 
           {busy && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-3">
-              <ThinkingOrb size={34} />
+              <span className="block h-10 w-10 overflow-hidden rounded-full bg-white/5">
+                <Mascot size={40} animation="thinking" />
+              </span>
               <span className="text-sm text-fog">Premýšľam…</span>
             </motion.div>
           )}

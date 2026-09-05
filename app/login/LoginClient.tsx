@@ -21,6 +21,9 @@ import {
 import GlowCard from "@/components/effects/GlowCard";
 import BlueprintGrid from "@/components/effects/BlueprintGrid";
 import BeamMark from "@/components/BeamMark";
+import dynamic from "next/dynamic";
+
+const Mascot = dynamic(() => import("@/components/mascot/Mascot"), { ssr: false });
 import ThinkingOrb from "@/components/effects/ThinkingOrb";
 
 type Mode = "login" | "signup";
@@ -119,7 +122,7 @@ export default function LoginClient({ next }: { next: string }) {
         {/* ---- nav ---- */}
         <nav className="nav-row flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <BeamMark size={24} />
+            <Mascot size={28} animation="idle" />
             <span className="text-[17px] font-semibold tracking-tight">
               Beam<span className="text-fog"> · mental health</span>
             </span>
@@ -202,8 +205,8 @@ export default function LoginClient({ next }: { next: string }) {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="demo-orb block h-9 w-9">
-                    <ThinkingOrb size={36} className="h-9 w-9" />
+                  <span className="demo-orb block h-10 w-10 overflow-hidden rounded-full bg-white/5">
+                    <Mascot size={40} animation="thinking" />
                   </span>
                   <span className="text-[13px] text-fog">Premýšľam…</span>
                 </div>
