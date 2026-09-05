@@ -17,9 +17,9 @@ import {
   LockKey,
   DeviceMobile,
   ArrowDown,
-  Sparkle,
 } from "@phosphor-icons/react";
 import GlowCard from "@/components/effects/GlowCard";
+import BlueprintGrid from "@/components/effects/BlueprintGrid";
 import BeamMark from "@/components/BeamMark";
 import ThinkingOrb from "@/components/effects/ThinkingOrb";
 
@@ -113,16 +113,7 @@ export default function LoginClient({ next }: { next: string }) {
 
   return (
     <main ref={root} className="relative min-h-dvh overflow-x-clip">
-      {/* clean black: faint grid + one soft top glow */}
-      <div className="grid-bg pointer-events-none absolute inset-0 -z-10" aria-hidden />
-      <div
-        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[420px]"
-        style={{
-          background:
-            "radial-gradient(60% 100% at 50% 0%, rgba(167,139,250,0.13), transparent 70%)",
-        }}
-        aria-hidden
-      />
+      <BlueprintGrid />
 
       <div className="mx-auto w-full max-w-6xl px-5 pb-16 pt-6">
         {/* ---- nav ---- */}
@@ -137,16 +128,15 @@ export default function LoginClient({ next }: { next: string }) {
             href="tel:0800900900"
             className="flex items-center gap-2 rounded-full border border-line bg-white/2 px-3.5 py-1.5 text-xs text-fog transition-colors hover:text-mist"
           >
-            <ShieldCheck size={14} className="text-beam-mint" />
+            <ShieldCheck size={14} className="text-mist" />
             Kríza? 0800 900 900
           </a>
         </nav>
 
         {/* ---- hero ---- */}
         <section className="mt-16 text-center sm:mt-20">
-          <p className="hero-eyebrow inline-flex items-center gap-2 rounded-full border border-line bg-white/3 px-3.5 py-1.5 text-xs text-fog">
-            <Sparkle size={13} weight="fill" className="text-beam-violet" />
-            mental health · súkromne · po slovensky
+          <p className="hero-eyebrow mono-label caret-blink inline-flex items-center rounded-full border border-line bg-black px-3.5 py-1.5">
+            beam — mental health · súkromne · po slovensky
           </p>
           <h1 className="mx-auto mt-6 max-w-[720px] text-[44px] font-semibold leading-[1.04] tracking-tight sm:text-6xl">
             {TITLE.split("").map((ch, i) => (
@@ -188,7 +178,7 @@ export default function LoginClient({ next }: { next: string }) {
             className="bento-cell md:col-span-7 md:row-span-2"
           >
             <GlowCard className="flex h-full flex-col p-5">
-              <CellLabel icon={<Sparkle size={13} weight="fill" className="text-beam-violet" />}>
+              <CellLabel icon={<span className="text-mist">01</span>}>
                 Ako vyzerá rozhovor
               </CellLabel>
 
@@ -206,7 +196,7 @@ export default function LoginClient({ next }: { next: string }) {
                       ktorá ťa tlačí najviac.
                     </p>
                     <span className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-line bg-white/3 px-2.5 py-1 text-[11px] text-fog">
-                      <Database size={11} className="text-beam-mint" />
+                      <Database size={11} className="text-mist" />
                       S1 · counsel-chat
                     </span>
                   </div>
@@ -224,7 +214,7 @@ export default function LoginClient({ next }: { next: string }) {
           {/* B: auth */}
           <div className="bento-cell md:col-span-5 md:row-span-2" id="zacat">
             <GlowCard className="h-full p-6">
-              <CellLabel icon={<User size={13} className="text-beam-violet" />}>
+              <CellLabel icon={<User size={13} className="text-mist" />}>
                 {mode === "login" ? "Vitaj späť" : "Nový účet"}
               </CellLabel>
 
@@ -245,10 +235,7 @@ export default function LoginClient({ next }: { next: string }) {
                       <motion.span
                         layoutId="auth-tab"
                         className="absolute inset-0 rounded-full"
-                        style={{
-                          background:
-                            "linear-gradient(100deg, var(--color-beam-pink), var(--color-beam-violet) 55%, var(--color-beam-mint))",
-                        }}
+                        style={{ background: "#ededed" }}
                         transition={{ type: "spring", stiffness: 400, damping: 32 }}
                       />
                     )}
@@ -335,7 +322,7 @@ export default function LoginClient({ next }: { next: string }) {
             className="bento-cell md:col-span-4"
           >
             <GlowCard className="h-full p-5">
-              <CellLabel icon={<ShieldCheck size={13} weight="fill" className="text-beam-mint" />}>
+              <CellLabel icon={<span className="text-mist">03</span>}>
                 Krízový protokol
               </CellLabel>
               <p className="mt-4 text-2xl font-semibold tracking-tight text-mist">0800 900 900</p>
@@ -353,7 +340,7 @@ export default function LoginClient({ next }: { next: string }) {
             className="bento-cell md:col-span-4"
           >
             <GlowCard className="h-full p-5">
-              <CellLabel icon={<Database size={13} className="text-beam-violet" />}>
+              <CellLabel icon={<span className="text-mist">04</span>}>
                 Podložené korpusom
               </CellLabel>
               <p className="mt-4 text-2xl font-semibold tracking-tight text-mist">
@@ -374,7 +361,7 @@ export default function LoginClient({ next }: { next: string }) {
             className="bento-cell md:col-span-4"
           >
             <GlowCard className="h-full p-5">
-              <CellLabel icon={<Cpu size={13} className="text-beam-pink" />}>
+              <CellLabel icon={<span className="text-mist">05</span>}>
                 Mozog
               </CellLabel>
               <p className="mt-4 text-2xl font-semibold tracking-tight text-mist">
@@ -395,7 +382,7 @@ export default function LoginClient({ next }: { next: string }) {
           >
             <GlowCard className="grid h-full grid-cols-1 divide-y divide-line sm:grid-cols-2 sm:divide-x sm:divide-y-0">
               <div className="p-5">
-                <CellLabel icon={<LockKey size={13} className="text-beam-mint" />}>
+                <CellLabel icon={<span className="text-mist">06</span>}>
                   Súkromie
                 </CellLabel>
                 <p className="mt-3 text-[14px] leading-relaxed text-fog">
@@ -404,7 +391,7 @@ export default function LoginClient({ next }: { next: string }) {
                 </p>
               </div>
               <div className="p-5">
-                <CellLabel icon={<DeviceMobile size={13} className="text-beam-pink" />}>
+                <CellLabel icon={<span className="text-mist">07</span>}>
                   Web + natívny Android
                 </CellLabel>
                 <p className="mt-3 text-[14px] leading-relaxed text-fog">
@@ -438,8 +425,8 @@ export default function LoginClient({ next }: { next: string }) {
 
 function CellLabel({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
   return (
-    <p className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.14em] text-fog">
-      {icon}
+    <p className="mono-label flex items-center gap-2.5">
+      <span className="text-white/70">{icon}</span>
       {children}
     </p>
   );

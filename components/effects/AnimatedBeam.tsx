@@ -38,11 +38,11 @@ export default function AnimatedBeam({
     >
       <defs>
         <linearGradient id={`beamGrad-${reverse ? "r" : "f"}-${width}-${height}`} x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#ff8fd6" stopOpacity="0" />
-          <stop offset="35%" stopColor="#ff8fd6" />
-          <stop offset="55%" stopColor="#a78bfa" />
-          <stop offset="75%" stopColor="#6ee7b7" />
-          <stop offset="100%" stopColor="#6ee7b7" stopOpacity="0" />
+          <stop offset="0%" stopColor="#ffffff" stopOpacity="0" />
+          <stop offset="35%" stopColor="#ffffff" />
+          <stop offset="55%" stopColor="#c9c9d0" />
+          <stop offset="75%" stopColor="#8b8b94" />
+          <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
         </linearGradient>
       </defs>
       {/* base path */}
@@ -58,8 +58,8 @@ export default function AnimatedBeam({
         style={{ animationDelay: `${delay}s`, animationDirection: reverse ? "reverse" : "normal" }}
       />
       {/* node dots */}
-      <circle cx={x1} cy={y1} r="3" fill="#a78bfa" opacity="0.7" />
-      <circle cx={x2} cy={y2} r="3" fill="#6ee7b7" opacity="0.7" />
+      <circle cx={x1} cy={y1} r="3" fill="#ffffff" opacity="0.55" />
+      <circle cx={x2} cy={y2} r="3" fill="#ffffff" opacity="0.55" />
     </svg>
   );
 }

@@ -66,7 +66,7 @@ export default function ThinkingOrb({
         const rad = 0.6 + depth * 1.15;
 
         ctx.beginPath();
-        ctx.fillStyle = `rgba(196, 181, 253, ${alpha})`;
+        ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
         ctx.arc(sx, sy, rad, 0, Math.PI * 2);
         ctx.fill();
       }
