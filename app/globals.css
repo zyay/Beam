@@ -182,3 +182,93 @@ body {
     animation: none;
   }
 }
+
+/* ---- 21st.dev style: mouse-tracking border glow ---- */
+.glow-card {
+  position: relative;
+  background: var(--color-card);
+  border: 1px solid var(--color-line);
+  backdrop-filter: blur(16px);
+  border-radius: 22px;
+}
+.glow-card::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1.2px;
+  background: radial-gradient(
+    260px circle at var(--mx, 50%) var(--my, 50%),
+    rgba(255, 143, 214, 0.85),
+    rgba(167, 139, 250, 0.45) 42%,
+    transparent 72%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+.glow-inner {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    320px circle at var(--mx, 50%) var(--my, 50%),
+    rgba(167, 139, 250, 0.10),
+    transparent 65%
+  );
+  pointer-events: none;
+}
+
+/* ---- shimmer heading ---- */
+.shimmer-text {
+  background: linear-gradient(
+    110deg,
+    var(--color-mist) 42%,
+    #ffffff 50%,
+    var(--color-mist) 58%
+  );
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer-sweep 3.6s linear infinite;
+}
+@keyframes shimmer-sweep {
+  to {
+    background-position: -220% 0;
+  }
+}
+
+/* ---- animated beam dash ---- */
+.beam-dash {
+  stroke-dashoffset: 300;
+  animation: beam-travel 2.8s linear infinite;
+}
+@keyframes beam-travel {
+  from {
+    stroke-dashoffset: 300;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* ---- faint grid for the hero ---- */
+.grid-bg {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 44px 44px;
+  -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 40%, #000 30%, transparent 75%);
+  mask-image: radial-gradient(ellipse 90% 70% at 50% 40%, #000 30%, transparent 75%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shimmer-text,
+  .beam-dash {
+    animation: none;
+  }
+}
