@@ -43,11 +43,20 @@ function hasDb() {
   return Boolean(process.env.POSTGRES_URL);
 }
 
+/** On Vercel the filesystem is ephemeral — without POSTGRES_URL auth must
+ * fail loudly instead of silently losing accounts. */
+function assertDb() {
+  if (!hasDb() && process.env.VERCEL) {
+    throw new Error("NO_DB");
+  }
+}
+
 export async function createUser(
   email: string,
   passwordHash: string,
   name: string | null
 ): Promise<UserRow> {
+  assertDb();
   if (hasDb()) {
     const { sql } = await import("@vercel/postgres");
     const res = await sql`
@@ -72,6 +81,7 @@ export async function createUser(
 }
 
 export async function getUserByEmail(email: string): Promise<UserRow | null> {
+  assertDb();
   if (hasDb()) {
     const { sql } = await import("@vercel/postgres");
     const res = await sql`

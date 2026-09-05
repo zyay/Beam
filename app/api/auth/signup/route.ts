@@ -39,6 +39,12 @@ export async function POST(req: NextRequest) {
     });
     return res;
   } catch (e) {
+    if ((e as Error).message === "NO_DB") {
+      return NextResponse.json(
+        { error: "Databáza nie je pripojená — nastav POSTGRES_URL vo Verceli (README → Deploy)." },
+        { status: 503 }
+      );
+    }
     console.error("signup error", e);
     return NextResponse.json({ error: "Registrácia sa nepodarila." }, { status: 500 });
   }
