@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
       );
     }
     const token = await createSessionToken(user.id, user.email);
-    const res = NextResponse.json({ ok: true, hasProfile: Boolean(user.profile) });
+    const res = NextResponse.json({ ok: true, hasProfile: Boolean(user.profile), token });
     res.cookies.set(SESSION_COOKIE, token, {
       httpOnly: true,
       sameSite: "lax",

@@ -14,29 +14,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 21
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Capacitor sync
-        run: npx cap sync android
-        env:
-          BEAM_SERVER_URL: ${{ vars.BEAM_SERVER_URL }}
-
-      - name: Build release APK
+      - name: Build native release APK (Kotlin + Compose)
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon
+        env:
+          BEAM_SERVER_URL: ${{ vars.BEAM_SERVER_URL }}
 
       - name: Rename artifact
         run: |

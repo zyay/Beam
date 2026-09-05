@@ -3,7 +3,6 @@ import { cookies } from "next/headers";
 
 export const SESSION_COOKIE = "beam_session";
 const ALG = "HS256";
-
 function secretKey() {
   const secret =
     process.env.AUTH_SECRET ||
@@ -36,4 +35,14 @@ export async function currentUserId(): Promise<string | null> {
   if (!token) return null;
   const session = await verifySessionToken(token);
   return session?.userId ?? null;
+}
+
+/** API routes: Bearer token (native app) first, then session cookie (web). */
+export async function requestUserId(req: Request): Promise<string | null> {
+  const auth = req.headers.get("authorization");
+  if (auth?.startsWith("Bearer ")) {
+    const session = await verifySessionToken(auth.slice(7).trim());
+    if (session?.userId) return session.userId;
+  }
+  return currentUserId();
 }

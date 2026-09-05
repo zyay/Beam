@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { currentUserId } from "@/lib/auth";
+import { requestUserId } from "@/lib/auth";
 import { getUserById, updateProfile, type Profile } from "@/lib/store";
 
 export async function PUT(req: NextRequest) {
-  const id = await currentUserId();
+  const id = await requestUserId(req);
   if (!id) return NextResponse.json({ error: "Neprihlásený." }, { status: 401 });
   const body = (await req.json()) as { profile: Profile; name?: string };
   const profile: Profile = {
@@ -22,8 +22,8 @@ export async function PUT(req: NextRequest) {
   return NextResponse.json({ ok: true, name: user.name, profile: user.profile });
 }
 
-export async function GET() {
-  const id = await currentUserId();
+export async function GET(req: NextRequest) {
+  const id = await requestUserId(req);
   if (!id) return NextResponse.json({ error: "Neprihlásený." }, { status: 401 });
   const user = await getUserById(id);
   if (!user) return NextResponse.json({ error: "Účet neexistuje." }, { status: 404 });

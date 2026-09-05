@@ -9,12 +9,13 @@ border-beam karty, particle thinking orb. Žiadne emoji — Phosphor icons.
 
 ## Ako to funguje
 
-- **Web** (Next.js 16 + Tailwind v4 + OGL + framer-motion) beží na Verceli.
+- **Web** (Next.js 16 + Tailwind v4 + OGL + framer-motion) beží na Verceli — zároveň je backendom pre appku.
 - **Chat**: `/api/chat` → krízový guard (pevná odpoveď s linkami) →
   DeepSeek cez Hugging Face router. `HF_TOKEN` je len na serveri.
-- **Účty**: e-mail + heslo (bcrypt), JWT session cookie, Vercel Postgres (Neon).
-- **Android APK**: Capacitor shell ukazuje na Vercel URL — APK vždy odráža
-  aktuálnu web verziu. Builduje ho GitHub Actions pri každom tagu `v*`.
+- **Účty**: e-mail + heslo (bcrypt), JWT (web: cookie / appka: Bearer header), Vercel Postgres (Neon).
+- **Android APK**: **plne natívna appka** — Kotlin + Jetpack Compose (žiadny webview).
+  Rovnaký beam dizajn: canvas lúče na pozadí, animovaný border-beam, particle thinking orb.
+  Builduje ju GitHub Actions pri každom tagu `v*`.
 
 ## Lokálny beh
 
@@ -40,16 +41,26 @@ HF_TOKEN=hf_...            # https://huggingface.co/settings/tokens
 3. V SQL editore databázy spusti `sql/schema.sql`.
 4. Deploy. Po prvej návšteve sa zaregistruj → onboarding → chat.
 
-## Android APK
+## Android APK (natívna Kotlin appka)
 
-Pri každom pushi tagu `v*` (napr. `git tag v1.0.0 && git push origin v1.0.0`)
+Pri každom pushi tagu `v*` (napr. `git tag v1.1.0 && git push origin v1.1.0`)
 vybuduje GitHub Actions `Beam-vX.Y.Z.apk` a vloží ho do [Releases](../../releases).
 
-APK číta URL z repo variable `BEAM_SERVER_URL` (Settings → Secrets and
-variables → Actions → Variables); bez nej sa použije
-`https://beam-mental-health.vercel.app`.
+Backend URL sa pri CI buď mení cez repo variable `BEAM_SERVER_URL`
+(Settings → Secrets and variables → Actions → Variables), alebo platí
+default `https://beam-mental-health.vercel.app`.
 
-Lokálny build: `npx cap sync android && cd android && ./gradlew assembleRelease`.
+Lokálny build (potrebný Android SDK):
+```bash
+cd android
+./gradlew assembleRelease
+# výsledok: android/app/build/outputs/apk/release/app-release.apk
+```
+
+Štruktúra natívnej časti: `android/app/src/main/java/com/beammental/app/` —
+`MainActivity` (navigácia), `screens/` (Auth, Onboarding, Chat, Settings),
+`ui/effects/` (BeamBackground, ThinkingOrb, beamBorder, BeamMark),
+`data/` (Api cez OkHttp, Session cez DataStore).
 
 ## Štruktúra
 

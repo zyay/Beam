@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
       name ? String(name).slice(0, 60) : null
     );
     const token = await createSessionToken(user.id, user.email);
-    const res = NextResponse.json({ ok: true, hasProfile: false });
+    const res = NextResponse.json({ ok: true, hasProfile: false, token });
     res.cookies.set(SESSION_COOKIE, token, {
       httpOnly: true,
       sameSite: "lax",

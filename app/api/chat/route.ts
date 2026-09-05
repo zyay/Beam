@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { currentUserId } from "@/lib/auth";
+import { requestUserId } from "@/lib/auth";
 
 /** Crisis signals — the model never answers these; a fixed protocol does.
  * Matched on diacritic-stripped lowercase text (users type without diacritics). */
@@ -26,7 +26,7 @@ type Msg = { role: "user" | "assistant"; content: string };
 export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
-  const id = await currentUserId();
+  const id = await requestUserId(req);
   if (!id) {
     return NextResponse.json({ error: "Neprihlásený." }, { status: 401 });
   }
