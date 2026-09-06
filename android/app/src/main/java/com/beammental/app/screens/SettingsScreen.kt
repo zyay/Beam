@@ -3,6 +3,7 @@ package com.beammental.app.screens
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -26,7 +27,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.beammental.app.data.Locator
 import com.beammental.app.ui.effects.MascotBlob
-import com.beammental.app.ui.effects.beamBorder
 import com.beammental.app.ui.theme.BeamColors
 import kotlinx.coroutines.launch
 
@@ -61,18 +61,18 @@ fun SettingsScreen(onBack: () -> Unit, onLoggedOut: () -> Unit) {
         Text("Nastavenia", fontSize = 24.sp, fontWeight = FontWeight.SemiBold, color = BeamColors.Mist)
 
         SectionLabel(Icons.Outlined.Badge, "Účet")
-        Column(Modifier.fillMaxWidth().beamBorder().background(BeamColors.Card, RoundedCornerShape(20.dp)).padding(18.dp)) {
+        Column(Modifier.fillMaxWidth().border(1.dp, BeamColors.Line, RoundedCornerShape(20.dp)).background(BeamColors.Card, RoundedCornerShape(20.dp)).padding(18.dp)) {
             OutlinedTextField(
                 value = name, onValueChange = { name = it },
                 placeholder = { Text("Meno", color = BeamColors.Fog) },
                 singleLine = true,
                 shape = RoundedCornerShape(14.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = BeamColors.Violet,
+                    focusedBorderColor = BeamColors.Mist,
                     unfocusedBorderColor = BeamColors.Line,
                     focusedContainerColor = Color.Transparent,
                     unfocusedContainerColor = Color.Transparent,
-                    cursorColor = BeamColors.Violet,
+                    cursorColor = BeamColors.Mist,
                 ),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -81,7 +81,7 @@ fun SettingsScreen(onBack: () -> Unit, onLoggedOut: () -> Unit) {
                 Modifier
                     .fillMaxWidth()
                     .height(44.dp)
-                    .beamBorder()
+                    .border(1.dp, BeamColors.Line, RoundedCornerShape(14.dp))
                     .clickable(enabled = !saving) {
                         saving = true
                         scope.launch {
@@ -94,7 +94,7 @@ fun SettingsScreen(onBack: () -> Unit, onLoggedOut: () -> Unit) {
                 Box(
                     Modifier
                         .fillMaxSize()
-                        .background(BeamColors.Violet.copy(alpha = 0.25f), RoundedCornerShape(14.dp)),
+                        .background(Color.White.copy(alpha = 0.10f), RoundedCornerShape(14.dp)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
@@ -106,7 +106,7 @@ fun SettingsScreen(onBack: () -> Unit, onLoggedOut: () -> Unit) {
         }
 
         SectionLabel(Icons.Outlined.Call, "Krízové linky")
-        Column(Modifier.fillMaxWidth().beamBorder().background(BeamColors.Card, RoundedCornerShape(20.dp))) {
+        Column(Modifier.fillMaxWidth().border(1.dp, BeamColors.Line, RoundedCornerShape(20.dp)).background(BeamColors.Card, RoundedCornerShape(20.dp))) {
             listOf(
                 "0800 900 900" to "Linka krízy · nonstop",
                 "0800 500 500" to "IPčko · nonstop",
@@ -119,7 +119,7 @@ fun SettingsScreen(onBack: () -> Unit, onLoggedOut: () -> Unit) {
                         .padding(horizontal = 16.dp, vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(Icons.Rounded.Phone, null, tint = BeamColors.Pink, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Rounded.Phone, null, tint = BeamColors.Mist, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(12.dp))
                     Text("$label · ", color = BeamColors.Mist, fontSize = 15.sp)
                     Text(number, color = BeamColors.Mist, fontWeight = FontWeight.Bold, fontSize = 15.sp)
@@ -129,7 +129,7 @@ fun SettingsScreen(onBack: () -> Unit, onLoggedOut: () -> Unit) {
         }
 
         SectionLabel(Icons.Outlined.Description, "Právne")
-        Column(Modifier.fillMaxWidth().beamBorder().background(BeamColors.Card, RoundedCornerShape(20.dp))) {
+        Column(Modifier.fillMaxWidth().border(1.dp, BeamColors.Line, RoundedCornerShape(20.dp)).background(BeamColors.Card, RoundedCornerShape(20.dp))) {
             listOf(
                 "ochrana-sukromia" to "Ochrana súkromia",
                 "vseobecne-podmienky" to "Všeobecné podmienky",

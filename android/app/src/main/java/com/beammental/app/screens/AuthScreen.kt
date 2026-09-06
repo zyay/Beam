@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -20,7 +21,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -30,9 +30,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.beammental.app.data.Locator
-import com.beammental.app.ui.effects.BeamBackground
+import com.beammental.app.ui.effects.BlueprintGrid
 import com.beammental.app.ui.effects.MascotBlob
-import com.beammental.app.ui.effects.beamBorder
 import com.beammental.app.ui.theme.BeamColors
 import kotlinx.coroutines.launch
 
@@ -63,7 +62,7 @@ fun AuthScreen(onAuthed: (onboarded: Boolean) -> Unit) {
 
     Column(Modifier.fillMaxSize().background(BeamColors.Ink)) {
         Box(Modifier.weight(1f)) {
-            BeamBackground(Modifier.matchParentSize())
+            BlueprintGrid(Modifier.matchParentSize())
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -86,7 +85,7 @@ fun AuthScreen(onAuthed: (onboarded: Boolean) -> Unit) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .beamBorder()
+                        .border(1.dp, BeamColors.Line, RoundedCornerShape(24.dp))
                         .background(BeamColors.Card, RoundedCornerShape(24.dp))
                         .padding(4.dp),
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -96,9 +95,7 @@ fun AuthScreen(onAuthed: (onboarded: Boolean) -> Unit) {
                             modifier = Modifier
                                 .weight(1f)
                                 .background(
-                                    if (mode == i) Brush.horizontalGradient(listOf(Color.White, Color.White)) else Brush.horizontalGradient(
-                                        listOf(Color.Transparent, Color.Transparent)
-                                    ),
+                                    if (mode == i) Color.White else Color.Transparent,
                                     RoundedCornerShape(20.dp),
                                 )
                                 .clickable(enabled = true) { mode = i; error = null }
@@ -143,7 +140,6 @@ fun AuthScreen(onAuthed: (onboarded: Boolean) -> Unit) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp)
-                        .beamBorder()
                         .clickable(enabled = !busy) { submit() },
                 ) {
                     Box(
@@ -203,11 +199,11 @@ private fun Field(
         singleLine = true,
         shape = RoundedCornerShape(14.dp),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = BeamColors.Violet,
+            focusedBorderColor = BeamColors.Mist,
             unfocusedBorderColor = BeamColors.Line,
             focusedContainerColor = Color.White.copy(alpha = 0.03f),
             unfocusedContainerColor = Color.White.copy(alpha = 0.03f),
-            cursorColor = BeamColors.Violet,
+            cursorColor = BeamColors.Mist,
         ),
         visualTransformation = if (password) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),

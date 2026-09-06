@@ -28,7 +28,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -37,7 +36,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.beammental.app.data.Locator
 import com.beammental.app.ui.effects.MascotBlob
-import com.beammental.app.ui.effects.beamBorder
 import com.beammental.app.ui.theme.BeamColors
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonArray
@@ -188,7 +186,7 @@ fun OnboardingScreen(onDone: () -> Unit) {
                         }
                         else -> StepShell("Hotovo, $name.", "Takto vyzerá tvoja výbava na štart.") {
                             Row(
-                                Modifier.fillMaxWidth().beamBorder().background(BeamColors.Card, RoundedCornerShape(20.dp)).padding(18.dp),
+                                Modifier.fillMaxWidth().border(1.dp, BeamColors.Line, RoundedCornerShape(20.dp)).background(BeamColors.Card, RoundedCornerShape(20.dp)).padding(18.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 MascotBlob(modifier = Modifier.size(56.dp), blobSize = 56.dp)
@@ -219,7 +217,7 @@ fun OnboardingScreen(onDone: () -> Unit) {
                         .weight(0.28f)
                         .height(50.dp)
                         .background(Color.Transparent, RoundedCornerShape(14.dp))
-                        .beamBorder()
+                        .border(1.dp, BeamColors.Line, RoundedCornerShape(14.dp))
                         .clickable { step-- },
                     contentAlignment = Alignment.Center,
                 ) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, null, tint = BeamColors.Fog) }
@@ -228,7 +226,7 @@ fun OnboardingScreen(onDone: () -> Unit) {
                 Modifier
                     .weight(if (step > 0) 0.72f else 1f)
                     .height(50.dp)
-                    .beamBorder()
+                    .border(1.dp, BeamColors.Line, RoundedCornerShape(14.dp))
                     .clickable(enabled = canNext && !saving) {
                         if (step < 6) step++ else finish()
                     },
@@ -277,8 +275,8 @@ private fun StepShell(title: String, sub: String, content: @Composable () -> Uni
 private fun MoodCard(icon: ImageVector, label: String, active: Boolean, modifier: Modifier, onClick: () -> Unit) {
     Column(
         modifier = modifier
-            .background(if (active) BeamColors.Violet.copy(alpha = 0.16f) else BeamColors.Card, RoundedCornerShape(16.dp))
-            .beamBorder()
+            .background(if (active) Color.White.copy(alpha = 0.12f) else BeamColors.Card, RoundedCornerShape(16.dp))
+            .border(1.dp, if (active) Color.White.copy(alpha = 0.55f) else BeamColors.Line, RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
             .padding(vertical = 18.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -322,17 +320,15 @@ private fun ChipFlow(options: List<String>, selected: Set<String>, onToggle: (Se
 
 @Composable
 private fun Modifier.chipBg(active: Boolean): Modifier = this.background(
-    if (active) BeamColors.Violet.copy(alpha = 0.14f) else BeamColors.Card,
+    if (active) Color.White.copy(alpha = 0.10f) else BeamColors.Card,
     RoundedCornerShape(999.dp),
-).then(
-    if (active) Modifier.beamBorder() else Modifier.border(1.dp, BeamColors.Line, RoundedCornerShape(999.dp))
-)
+).border(1.dp, if (active) Color.White.copy(alpha = 0.55f) else BeamColors.Line, RoundedCornerShape(999.dp))
 
 @Composable
 private fun fieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor = BeamColors.Violet,
+    focusedBorderColor = BeamColors.Mist,
     unfocusedBorderColor = BeamColors.Line,
     focusedContainerColor = Color.White.copy(alpha = 0.03f),
     unfocusedContainerColor = Color.White.copy(alpha = 0.03f),
-    cursorColor = BeamColors.Violet,
+    cursorColor = BeamColors.Mist,
 )

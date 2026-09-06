@@ -37,41 +37,47 @@ class Api(private val session: Session) {
 
     private suspend fun post(path: String, body: JsonObject, authed: Boolean = false): Pair<Int, JsonObject?> =
         withContext(Dispatchers.IO) {
-            val b = RequestBody.create("application/json".toMediaType(), body.toString())
-            val rb = Request.Builder().url(base + path).post(b)
-            if (authed) rb.header("Authorization", "Bearer ${session.token().orEmpty()}")
-            client.newCall(rb.build()).execute().use { resp ->
-                val text = resp.body?.string().orEmpty()
-                val obj = runCatching {
-                    json.parseToJsonElement(text).jsonObject
-                }.getOrNull()
-                resp.code to obj
-            }
+            runCatching {
+                val b = RequestBody.create("application/json".toMediaType(), body.toString())
+                val rb = Request.Builder().url(base + path).post(b)
+                if (authed) rb.header("Authorization", "Bearer ${session.token().orEmpty()}")
+                client.newCall(rb.build()).execute().use { resp ->
+                    val text = resp.body?.string().orEmpty()
+                    val obj = runCatching {
+                        json.parseToJsonElement(text).jsonObject
+                    }.getOrNull()
+                    resp.code to obj
+                }
+            }.getOrElse { 0 to null }
         }
 
     private suspend fun put(path: String, body: JsonObject): Pair<Int, JsonObject?> =
         withContext(Dispatchers.IO) {
-            val b = RequestBody.create("application/json".toMediaType(), body.toString())
-            val rb = Request.Builder().url(base + path).put(b)
-                .header("Authorization", "Bearer ${session.token().orEmpty()}")
-            client.newCall(rb.build()).execute().use { resp ->
-                val text = resp.body?.string().orEmpty()
-                val obj = runCatching {
-                    json.parseToJsonElement(text).jsonObject
-                }.getOrNull()
-                resp.code to obj
-            }
+            runCatching {
+                val b = RequestBody.create("application/json".toMediaType(), body.toString())
+                val rb = Request.Builder().url(base + path).put(b)
+                    .header("Authorization", "Bearer ${session.token().orEmpty()}")
+                client.newCall(rb.build()).execute().use { resp ->
+                    val text = resp.body?.string().orEmpty()
+                    val obj = runCatching {
+                        json.parseToJsonElement(text).jsonObject
+                    }.getOrNull()
+                    resp.code to obj
+                }
+            }.getOrElse { 0 to null }
         }
 
     private suspend fun get(path: String): Pair<Int, JsonObject?> =
         withContext(Dispatchers.IO) {
-            val rb = Request.Builder().url(base + path)
-                .header("Authorization", "Bearer ${session.token().orEmpty()}")
-            client.newCall(rb.build()).execute().use { resp ->
-                val text = resp.body?.string().orEmpty()
-                val obj = runCatching { json.parseToJsonElement(text).jsonObject }.getOrNull()
-                resp.code to obj
-            }
+            runCatching {
+                val rb = Request.Builder().url(base + path)
+                    .header("Authorization", "Bearer ${session.token().orEmpty()}")
+                client.newCall(rb.build()).execute().use { resp ->
+                    val text = resp.body?.string().orEmpty()
+                    val obj = runCatching { json.parseToJsonElement(text).jsonObject }.getOrNull()
+                    resp.code to obj
+                }
+            }.getOrElse { 0 to null }
         }
 
     private fun JsonObject?.err(): String? =
@@ -88,7 +94,7 @@ class Api(private val session: Session) {
             session.saveAuth(token, name)
             return AuthResult(true, obj?.get("hasProfile")?.jsonPrimitive?.contentOrNull == "true", null)
         }
-        return AuthResult(false, false, obj.err() ?: "Server neodpovedá ($code).")
+        return AuthResult(false, false, obj.err() ?: connError(code))
     }
 
     suspend fun login(email: String, password: String): AuthResult {
@@ -101,7 +107,7 @@ class Api(private val session: Session) {
             session.saveAuth(token, null)
             return AuthResult(true, obj?.get("hasProfile")?.jsonPrimitive?.contentOrNull == "true", null)
         }
-        return AuthResult(false, false, obj.err() ?: "Server neodpovedá ($code).")
+        return AuthResult(false, false, obj.err() ?: connError(code))
     }
 
     /** Signup/login currently set the session via httpOnly cookie on web —
@@ -154,11 +160,16 @@ class Api(private val session: Session) {
             return ChatResult(text, crisis, null)
         }
         val err = obj.err() ?: when (code) {
-            504, 502 -> "Chat služba je preťažená. Skús to o chvíľu."
+            0 -> "Nepodarilo sa pripojiť k serveru. Skús to o chvíľu."
+            502, 504 -> "Chat služba je preťažená. Skús to o chvíľu."
             else -> "Server neodpovedá ($code)."
         }
         return ChatResult(null, false, err)
     }
+
+    private fun connError(code: Int): String =
+        if (code == 0) "Nepodarilo sa pripojiť k serveru. Skús to o chvíľu."
+        else "Server neodpovedá ($code)."
 
     companion object {
         fun crisisLike(text: String): Boolean {

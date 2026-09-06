@@ -13,17 +13,12 @@ object BeamColors {
     val Line = Color(0x14FFFFFF)      // white 8%
     val Fog = Color(0xFF8B8B94)
     val Mist = Color(0xFFE8E8EC)
-    val Pink = Color(0xFFFF8FD6)
-    val Violet = Color(0xFFA78BFA)
-    val Mint = Color(0xFF6EE7B7)
 }
 
-val BeamGradient = listOf(BeamColors.Pink, BeamColors.Violet, BeamColors.Mint)
-
 private val BeamScheme = darkColorScheme(
-    primary = BeamColors.Violet,
-    secondary = BeamColors.Pink,
-    tertiary = BeamColors.Mint,
+    primary = Color.White,
+    secondary = BeamColors.Mist,
+    tertiary = BeamColors.Fog,
     background = BeamColors.Ink,
     surface = BeamColors.Ink2,
     onBackground = BeamColors.Mist,

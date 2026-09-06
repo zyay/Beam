@@ -155,7 +155,7 @@ fun ChatScreen(onSettings: () -> Unit) {
                                 lineHeight = 22.sp,
                                 modifier = Modifier
                                     .fillMaxWidth(0.85f)
-                                    .background(BeamColors.Violet.copy(alpha = 0.16f), RoundedCornerShape(18.dp, 18.dp, 4.dp, 18.dp))
+                                    .background(Color.White.copy(alpha = 0.12f), RoundedCornerShape(18.dp, 18.dp, 4.dp, 18.dp))
                                     .padding(horizontal = 14.dp, vertical = 11.dp),
                             )
                         }
@@ -215,11 +215,11 @@ fun ChatScreen(onSettings: () -> Unit) {
                 shape = RoundedCornerShape(22.dp),
                 maxLines = 4,
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = BeamColors.Violet,
+                    focusedBorderColor = BeamColors.Mist,
                     unfocusedBorderColor = BeamColors.Line,
                     focusedContainerColor = Color.White.copy(alpha = 0.04f),
                     unfocusedContainerColor = Color.White.copy(alpha = 0.04f),
-                    cursorColor = BeamColors.Violet,
+                    cursorColor = BeamColors.Mist,
                 ),
                 modifier = Modifier.weight(1f),
             )
@@ -247,13 +247,13 @@ private fun CrisisCard() {
     Column(
         Modifier
             .fillMaxWidth()
-            .background(BeamColors.Pink.copy(alpha = 0.07f), RoundedCornerShape(16.dp))
+            .background(Color.White.copy(alpha = 0.07f), RoundedCornerShape(16.dp))
             .padding(14.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Rounded.Warning, null, tint = Color(0xFFFFB3D9), modifier = Modifier.size(17.dp))
+            Icon(Icons.Rounded.Warning, null, tint = Color.White, modifier = Modifier.size(17.dp))
             Spacer(Modifier.width(8.dp))
-            Text("Krízová pomoc", color = Color(0xFFFFB3D9), fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+            Text("Krízová pomoc", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
         }
         Spacer(Modifier.height(10.dp))
         listOf(
@@ -274,7 +274,7 @@ private fun CrisisCard() {
                     .padding(horizontal = 12.dp, vertical = 11.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(Icons.Rounded.Phone, null, tint = BeamColors.Pink, modifier = Modifier.size(16.dp))
+                Icon(Icons.Rounded.Phone, null, tint = BeamColors.Mist, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(10.dp))
                 Text("$label · ", color = BeamColors.Mist, fontSize = 14.sp)
                 Text(number, color = BeamColors.Mist, fontWeight = FontWeight.Bold, fontSize = 14.sp)
