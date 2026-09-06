@@ -1,13 +1,23 @@
 package com.beammental.app.screens
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -21,9 +31,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -99,7 +110,14 @@ fun ChatScreen(onSettings: () -> Unit) {
             Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            MascotBlob(modifier = Modifier.size(28.dp), blobSize = 28.dp)
+            MascotBlob(
+                modifier = Modifier.size(28.dp), blobSize = 28.dp,
+                animation = when {
+                    busy -> "thinking"
+                    input.isNotBlank() -> "listening"
+                    else -> "idle"
+                },
+            )
             Spacer(Modifier.width(8.dp))
             Text("Beam", fontWeight = FontWeight.SemiBold, color = BeamColors.Mist)
             Text(" · $name", color = BeamColors.Fog, fontSize = 14.sp)
@@ -147,9 +165,12 @@ fun ChatScreen(onSettings: () -> Unit) {
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                items(messages) { (text, role) ->
+                itemsIndexed(messages, key = { i, _ -> i }) { _, (text, role) ->
                     when (role) {
-                        "user" -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                        "user" -> Row(
+                            Modifier.fillMaxWidth().animateItem(),
+                            horizontalArrangement = Arrangement.End,
+                        ) {
                             Text(
                                 text,
                                 color = BeamColors.Mist,
@@ -161,22 +182,22 @@ fun ChatScreen(onSettings: () -> Unit) {
                                     .padding(horizontal = 14.dp, vertical = 11.dp),
                             )
                         }
-                        "assistant:crisis" -> CrisisCard()
+                        "assistant:crisis" -> Box(Modifier.fillMaxWidth().animateItem()) { CrisisCard() }
                         else -> Text(
                             text,
                             color = BeamColors.Mist,
                             fontSize = 15.sp,
                             lineHeight = 22.sp,
-                            modifier = Modifier.fillMaxWidth(0.9f),
+                            modifier = Modifier.fillMaxWidth(0.9f).animateItem(),
                         )
                     }
                 }
                 if (busy) {
-                    item {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                    item(key = "busy") {
+                        Row(Modifier.animateItem(), verticalAlignment = Alignment.CenterVertically) {
                             MascotBlob(modifier = Modifier.size(36.dp), blobSize = 36.dp, thinking = true)
                             Spacer(Modifier.width(10.dp))
-                            Text("Premýšľam…", color = BeamColors.Fog, fontSize = 14.sp)
+                            ThinkingLabel()
                         }
                     }
                 }
@@ -227,19 +248,49 @@ fun ChatScreen(onSettings: () -> Unit) {
             )
             Spacer(Modifier.width(8.dp))
             val enabled = !busy && input.isNotBlank()
+            val interaction = remember { MutableInteractionSource() }
+            val pressed by interaction.collectIsPressedAsState()
+            val sendScale by animateFloatAsState(
+                if (pressed) 0.90f else 1f,
+                spring(dampingRatio = 0.55f),
+            )
             Box(
                 Modifier
                     .size(48.dp)
                     .alpha(if (enabled) 1f else 0.5f)
+                    .graphicsLayer {
+                        scaleX = sendScale
+                        scaleY = sendScale
+                    }
                     .background(
                         BeamColors.Sage,
                         CircleShape,
                     )
-                    .clickable(enabled = enabled) { send() },
+                    .clickable(interactionSource = interaction, indication = null, enabled = enabled) { send() },
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(Icons.Rounded.Send, "Poslať", tint = BeamColors.SageInk, modifier = Modifier.size(20.dp))
             }
+        }
+    }
+}
+
+@Composable
+private fun ThinkingLabel() {
+    val transition = rememberInfiniteTransition(label = "dots")
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text("Premýšľam", color = BeamColors.Fog, fontSize = 14.sp)
+        repeat(3) { i ->
+            val a by transition.animateFloat(
+                initialValue = 0.15f,
+                targetValue = 1f,
+                animationSpec = infiniteRepeatable(
+                    tween(520, delayMillis = i * 170, easing = LinearEasing),
+                    RepeatMode.Reverse,
+                ),
+                label = "dot$i",
+            )
+            Text(".", color = BeamColors.Fog, fontSize = 15.sp, modifier = Modifier.alpha(a))
         }
     }
 }

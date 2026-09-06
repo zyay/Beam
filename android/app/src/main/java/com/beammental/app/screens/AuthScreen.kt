@@ -15,6 +15,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Mail
 import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material.icons.rounded.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -191,11 +193,22 @@ private fun Field(
     keyboardType: KeyboardType = KeyboardType.Text,
     password: Boolean = false,
 ) {
+    var showPassword by remember { mutableStateOf(false) }
     OutlinedTextField(
         value = value,
         onValueChange = onValue,
         placeholder = { Text(placeholder, color = BeamColors.Fog) },
         leadingIcon = { Icon(icon, null, tint = BeamColors.Fog) },
+        trailingIcon = if (password) {
+            {
+                Icon(
+                    if (showPassword) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                    if (showPassword) "Skryť heslo" else "Ukázať heslo",
+                    tint = BeamColors.Fog,
+                    modifier = Modifier.clickable { showPassword = !showPassword },
+                )
+            }
+        } else null,
         singleLine = true,
         shape = RoundedCornerShape(14.dp),
         colors = OutlinedTextFieldDefaults.colors(
@@ -205,7 +218,7 @@ private fun Field(
             unfocusedContainerColor = Color(0xFF1D1913),
             cursorColor = BeamColors.Sage,
         ),
-        visualTransformation = if (password) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
+        visualTransformation = if (password && !showPassword) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
         modifier = Modifier.fillMaxWidth(),
     )
