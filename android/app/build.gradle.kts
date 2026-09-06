@@ -13,13 +13,18 @@ android {
         applicationId = "com.beammental.app"
         minSdk = 24
         targetSdk = 35
-        versionCode = 5
-        versionName = "1.3.0"
+        versionCode = 6
+        versionName = "1.3.1"
         // Backend URL can be overridden by CI via BEAM_SERVER_URL env var.
+        // vars.BEAM_SERVER_URL in Actions resolves to "" when unset, which
+        // counts as a present env var — fall back to prod when blank.
         buildConfigField(
             "String",
             "BEAM_URL",
-            "\"${providers.environmentVariable("BEAM_SERVER_URL").orElse("https://beam-mental-health.vercel.app").get()}\""
+            "\"${providers.environmentVariable("BEAM_SERVER_URL")
+                .getOrElse("https://beam-mental-health.vercel.app")
+                .trim()
+                .ifEmpty { "https://beam-mental-health.vercel.app" }}\""
         )
     }
 
