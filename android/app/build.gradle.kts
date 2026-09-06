@@ -13,8 +13,8 @@ android {
         applicationId = "com.beammental.app"
         minSdk = 24
         targetSdk = 35
-        versionCode = 10
-        versionName = "1.5.0"
+        versionCode = 11
+        versionName = "1.6.0"
         // Backend URL can be overridden by CI via BEAM_SERVER_URL env var.
         // vars.BEAM_SERVER_URL in Actions resolves to "" when unset, which
         // counts as a present env var — fall back to prod when blank.
@@ -25,6 +25,13 @@ android {
                 .getOrElse("https://beam-mental-health.vercel.app")
                 .trim()
                 .ifEmpty { "https://beam-mental-health.vercel.app" }}\""
+        )
+        // Gemini Live API key, injected by CI via the BEAM_GOOGLE_KEY variable.
+        // Blank for local builds — VoiceScreen shows a notice instead of crashing.
+        buildConfigField(
+            "String",
+            "BEAM_GOOGLE_KEY",
+            "\"${providers.environmentVariable("BEAM_GOOGLE_KEY").getOrElse("").trim()}\""
         )
     }
 

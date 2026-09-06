@@ -55,24 +55,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ text: CRISIS_RESPONSE, crisis: true });
   }
 
-  const token = process.env.HF_TOKEN;
+  // Vercel AI Gateway key (Settings → Environment Variables → AI_GATEWAY_KEY)
+  const token = process.env.AI_GATEWAY_KEY;
   if (!token) {
     return NextResponse.json(
-      { text: "Chat nie je pripojený — chýba HF_TOKEN na serveri. Nastav ho vo Verceli (Settings → Environment Variables)." },
+      { text: "Chat nie je pripojený — chýba AI_GATEWAY_KEY na serveri. Nastav ho vo Verceli (Settings → Environment Variables)." },
       { status: 503 }
     );
   }
 
   const payload = {
-    model: process.env.HF_MODEL || "deepseek-ai/DeepSeek-V4-Flash-Vision-Exp",
+    model: process.env.AI_GATEWAY_MODEL || "minimax/minimax-m3",
     messages: [{ role: "system", content: SYSTEM }, ...messages],
     max_tokens: 1000,
     temperature: 0.6,
-    reasoning_effort: "low",
   };
 
   try {
-    const r = await fetch("https://router.huggingface.co/v1/chat/completions", {
+    const r = await fetch("https://ai-gateway.vercel.sh/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
     });
     if (!r.ok) {
       const detail = (await r.text()).slice(0, 200);
-      console.error("HF error", r.status, detail);
+      console.error("AI Gateway error", r.status, detail);
       return NextResponse.json(
         { text: "Chat služba teraz neodpovedá. Skús to o chvíľu znova." },
         { status: 502 }

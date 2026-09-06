@@ -26,6 +26,7 @@ jobs:
           ./gradlew assembleRelease --no-daemon
         env:
           BEAM_SERVER_URL: ${{ vars.BEAM_SERVER_URL }}
+          BEAM_GOOGLE_KEY: ${{ vars.BEAM_GOOGLE_KEY }}
 
       - name: Rename artifact
         run: |

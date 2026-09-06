@@ -27,6 +27,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.Phone
 import androidx.compose.material.icons.rounded.Send
 import androidx.compose.material.icons.rounded.Warning
@@ -69,6 +70,7 @@ fun ChatScreen(onSettings: () -> Unit) {
     var input by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
+    var voiceOpen by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
 
     LaunchedEffect(Unit) {
@@ -139,6 +141,12 @@ fun ChatScreen(onSettings: () -> Unit) {
             Text("Beam", fontWeight = FontWeight.SemiBold, color = BeamColors.Mist)
             Text(" · $display", color = BeamColors.Fog, fontSize = 14.sp)
             Spacer(Modifier.weight(1f))
+            Icon(
+                Icons.Rounded.Mic, "Hlasový režim",
+                tint = BeamColors.Sage,
+                modifier = Modifier.size(22.dp).clickable { voiceOpen = true },
+            )
+            Spacer(Modifier.width(14.dp))
             Icon(
                 Icons.Outlined.Add, "Nový rozhovor",
                 tint = BeamColors.Fog,
@@ -331,6 +339,10 @@ fun ChatScreen(onSettings: () -> Unit) {
             }
         }
         }
+
+        if (voiceOpen) {
+            VoiceScreen(onClose = { voiceOpen = false })
+        }
     }
 }
 
@@ -355,7 +367,7 @@ private fun ThinkingLabel() {
 }
 
 @Composable
-private fun CrisisCard() {
+fun CrisisCard() {
     Column(
         Modifier
             .fillMaxWidth()
