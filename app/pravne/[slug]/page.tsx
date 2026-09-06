@@ -5,12 +5,12 @@ import BeamMark from "@/components/BeamMark";
 const DOCS: Record<string, { title: string; updated: string; body: string[] }> = {
   "ochrana-sukromia": {
     title: "Ochrana súkromia",
-    updated: "5. septembra 2026",
+    updated: "6. septembra 2026",
     body: [
       `Aplikácia Beam (ďalej len „Beam“) spracúva osobné údaje v minimálnom rozsahu potrebnom na prevádzku služby. Tento dokument vysvetľuje, ktoré údaje, načo a ako dlho.`,
       `**Ktoré údaje spracúvame.** Pri registrácii uložíme tvoj e-mail a hašované heslo (bcrypt). Počas onboardingu si môžeš zadať meno a preferencie (nálada, oblasti zaťaženia, ciele, frekvencia check-inu) — tieto sa ukladajú do tvojho profilu. Obsah tvojich správ v chate sa ukladá iba v tvojom zariadení (lokálne úložisko prehliadača); server si ich dlhodobo neukladá.`,
       `**Načo ich potrebujeme.** Údaje používame výhradne na poskytovanie funkcií Beam: prihlásenie, prispôsobenie rozhovorov a pripomienky. Nepredávame ich ani ich neposkytujeme tretím stranám na marketingové účely.`,
-      `**Spracovanie AI.** Tvoje správy sa posiela cez náš server do jazykového modelu (Hugging Face Inference Providers, model DeepSeek) výhradne na účel vygenerovania odpovede. Nikdy ich nepoužívame na trénovanie modelov.`,
+      `**Spracovanie AI.** Tvoje správy sa posiela cez náš server do jazykového modelu (Vercel AI Gateway, prevádzkovateľ Vercel Inc., model minimax/minimax-m3) výhradne na účel vygenerovania odpovede. Nikdy ich nepoužívame na trénovanie modelov.`,
       `**Súbory cookie.** Používame jedinú nevyhnutnú cookie (beam_session) — authentizačný token, ktorý udržiava tvoje prihlásenie. Nepoužívame sledovacie ani marketingové cookies.`,
       `**Skladovanie.** Účet a profil uchovávame, kým ho nevymažeš. Chat históriu drží len tvoje zariadenie — vymažeš ju tlačidlom Nový rozhovor alebo vymazaním úložiska prehliadača.`,
       `**Tvoje práva.** Môžeš požiadať o výpis, opravu alebo vymazanie svojich údajov na kontakt uvedenom nižšie. Nepridlžujeme citlivé špeciálne kategórie údajov povinne — o citlivých veciach sa rozprávaj v chate len v rozsahu, v akom si to praješ.`,

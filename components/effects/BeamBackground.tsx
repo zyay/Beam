@@ -47,9 +47,8 @@ void main() {
   float b2 = beam(p, 0.40, 0.030, 0.50, 0.07, t * 1.3 + 2.0);
   float b3 = beam(p, 0.78, 0.022, 0.50, 0.09, t * 0.8 + 4.0);
 
-  col += vec3(1.00, 0.56, 0.84) * b1 * 0.38; // pink
-  col += vec3(0.65, 0.55, 0.98) * b2 * 0.42; // violet
-  col += vec3(0.43, 0.91, 0.72) * b3 * 0.32; // mint
+  float beams = b1 * 0.38 + b2 * 0.42 + b3 * 0.32;
+  col += vec3(0.92, 0.92, 0.93) * beams; // monochrome mist
 
   // gentle vertical falloff so the bottom stays darkest
   col *= 0.65 + 0.35 * smoothstep(0.0, 0.9, uv.y);
@@ -109,6 +108,18 @@ export default function BeamBackground({ className = "" }: { className?: string 
     const mesh = new Mesh(gl, { geometry, program });
 
     let raf = 0;
+
+    // A dropped GL context (mobile GPU eviction, suspended tab) would otherwise
+    // leave a frozen canvas on screen. Removing it here matters: flipping
+    // `failed` re-renders without unmounting, so the cleanup below never runs.
+    const onContextLost = (e: Event) => {
+      e.preventDefault();
+      cancelAnimationFrame(raf);
+      gl.canvas.remove();
+      setFailed(true);
+    };
+    gl.canvas.addEventListener("webglcontextlost", onContextLost);
+
     const resize = () => {
       renderer.setSize(host.offsetWidth, host.offsetHeight);
       program.uniforms.u_res.value = [gl.canvas.width, gl.canvas.height];
@@ -127,12 +138,13 @@ export default function BeamBackground({ className = "" }: { className?: string 
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
+      gl.canvas.removeEventListener("webglcontextlost", onContextLost);
       gl.canvas.remove();
     };
   }, []);
 
   if (failed) {
-    // static fallback: the same palette as pure CSS
+    // static fallback: a monochrome echo of the shader
     return (
       <div
         ref={ref}
@@ -140,9 +152,9 @@ export default function BeamBackground({ className = "" }: { className?: string 
         className={`pointer-events-none absolute inset-0 -z-10 ${className}`}
         style={{
           background:
-            "radial-gradient(120% 60% at 70% 10%, rgba(167,139,250,0.16), transparent 60%)," +
-            "radial-gradient(90% 50% at 20% 30%, rgba(255,143,214,0.10), transparent 55%)," +
-            "radial-gradient(80% 50% at 50% 90%, rgba(110,231,183,0.07), transparent 60%)," +
+            "radial-gradient(120% 60% at 70% 10%, rgba(235,235,238,0.14), transparent 60%)," +
+            "radial-gradient(90% 50% at 20% 30%, rgba(235,235,238,0.08), transparent 55%)," +
+            "radial-gradient(80% 50% at 50% 90%, rgba(235,235,238,0.05), transparent 60%)," +
             "#060607",
         }}
       />

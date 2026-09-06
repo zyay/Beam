@@ -20,6 +20,7 @@ import {
 } from "@phosphor-icons/react";
 import GlowCard from "@/components/effects/GlowCard";
 import BlueprintGrid from "@/components/effects/BlueprintGrid";
+import BeamBackground from "@/components/effects/BeamBackground";
 import BeamMark from "@/components/BeamMark";
 import dynamic from "next/dynamic";
 
@@ -117,8 +118,9 @@ export default function LoginClient({ next }: { next: string }) {
   return (
     <main ref={root} className="relative min-h-dvh overflow-x-clip">
       <BlueprintGrid />
+      <BeamBackground className="opacity-[0.07]" />
 
-      <div className="mx-auto w-full max-w-6xl px-5 pb-16 pt-6">
+      <div className="relative z-0 mx-auto w-full max-w-6xl px-5 pb-16 pt-6">
         {/* ---- nav ---- */}
         <nav className="nav-row flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -151,8 +153,8 @@ export default function LoginClient({ next }: { next: string }) {
           </h1>
           <p className="hero-sub mx-auto mt-5 max-w-[520px] text-[16px] leading-relaxed text-fog">
             Kľudný spoločník na rozhovor o duševnej pohode. Píšeš ako
-            s kamarátom — odpovede sú podložené korpusom, citované, a kríza
-            má vždy prednosť pred modelom.
+            s kamarátom — odpovedá po slovensky, bez diagnóz a rád o liekoch,
+            a kríza má vždy prednosť pred modelom.
           </p>
           <div className="mt-7 flex items-center justify-center gap-3">
             <a
@@ -336,7 +338,7 @@ export default function LoginClient({ next }: { next: string }) {
             </GlowCard>
           </motion.div>
 
-          {/* D: RAG */}
+          {/* D: live voice */}
           <motion.div
             whileHover={{ y: -4 }}
             transition={{ type: "spring", stiffness: 300, damping: 24 }}
@@ -344,15 +346,15 @@ export default function LoginClient({ next }: { next: string }) {
           >
             <GlowCard className="h-full p-5">
               <CellLabel icon={<span className="text-mist">04</span>}>
-                Podložené korpusom
+                Hlasový hovor
               </CellLabel>
               <p className="mt-4 text-2xl font-semibold tracking-tight text-mist">
-                1 270 chunkov
+                Gemini Live
               </p>
               <p className="mt-1.5 text-[13px] leading-relaxed text-fog">
-                counsel-chat · mental-health-chat · chatbot dataset · FAQ.
-                Odpoveď cituje <span className="text-mist">[S1]</span>{" "}
-                <span className="text-mist">[S2]</span> priamo v texte.
+                V natívnej appke môžeš hovoriť — nie písať. Gemini 2.5 Flash
+                Native Audio rozpráva, 3.5 Transcribe Live píše živé titulky
+                a vlastnou vetou ho kedykoľvek prerušíš (barge-in).
               </p>
             </GlowCard>
           </motion.div>
@@ -368,11 +370,12 @@ export default function LoginClient({ next }: { next: string }) {
                 Mozog
               </CellLabel>
               <p className="mt-4 text-2xl font-semibold tracking-tight text-mist">
-                DeepSeek-V4-Flash
+                minimax-m3
               </p>
               <p className="mt-1.5 text-[13px] leading-relaxed text-fog">
-                Hugging Face serverless proxy. Reálnych ~30–45 tok/s,
-                reasoning effort nízky, latencia v sekundách.
+                Cez Vercel AI Gateway — model vymeniteľný jednou env
+                premennou. Natívna appka odpoveď streamuje po tokenoch
+                (SSE), web ju vráti naraz.
               </p>
             </GlowCard>
           </motion.div>
