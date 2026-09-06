@@ -1,14 +1,22 @@
 package com.beammental.app.screens
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -24,8 +32,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
@@ -35,6 +45,7 @@ import com.beammental.app.data.Locator
 import com.beammental.app.ui.effects.BlueprintGrid
 import com.beammental.app.ui.effects.MascotBlob
 import com.beammental.app.ui.theme.BeamColors
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
@@ -63,7 +74,7 @@ fun AuthScreen(onAuthed: (onboarded: Boolean) -> Unit) {
     }
 
     Column(Modifier.fillMaxSize().background(BeamColors.Ink)) {
-        Box(Modifier.weight(1f)) {
+        Box(Modifier.weight(1f).imePadding()) {
             BlueprintGrid(Modifier.matchParentSize())
             Column(
                 modifier = Modifier
@@ -74,42 +85,61 @@ fun AuthScreen(onAuthed: (onboarded: Boolean) -> Unit) {
                 verticalArrangement = Arrangement.Center,
             ) {
                 Spacer(Modifier.height(40.dp))
-                MascotBlob(modifier = Modifier.size(30.dp), blobSize = 30.dp)
-                Spacer(Modifier.height(6.dp))
-                Row {
-                    Text("Beam", fontSize = 24.sp, fontWeight = FontWeight.SemiBold, color = BeamColors.Mist)
-                    Text(" · mental health", fontSize = 24.sp, fontWeight = FontWeight.SemiBold, color = BeamColors.Fog)
+                // Beam sleeps until you start typing
+                val awake = name.isNotBlank() || email.isNotBlank() || password.isNotBlank()
+                Entrance(0) {
+                    MascotBlob(
+                        modifier = Modifier.size(56.dp),
+                        blobSize = 56.dp,
+                        animation = when {
+                            busy -> "thinking"
+                            awake -> "curious"
+                            else -> "sleeping"
+                        },
+                    )
                 }
-                Text("Kľudné miesto na rozhovor, keď ti nie je ľahko.", fontSize = 14.sp, color = BeamColors.Fog)
+                Spacer(Modifier.height(10.dp))
+                Entrance(1) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Row {
+                            Text("Beam", fontSize = 24.sp, fontWeight = FontWeight.SemiBold, color = BeamColors.Mist)
+                            Text(" · mental health", fontSize = 24.sp, fontWeight = FontWeight.SemiBold, color = BeamColors.Fog)
+                        }
+                        Text("Kľudné miesto na rozhovor, keď ti nie je ľahko.", fontSize = 14.sp, color = BeamColors.Fog)
+                    }
+                }
                 Spacer(Modifier.height(28.dp))
 
                 // tab switch
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .border(1.dp, BeamColors.Line, RoundedCornerShape(24.dp))
-                        .background(BeamColors.Card, RoundedCornerShape(24.dp))
-                        .padding(4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    listOf("Prihlásenie", "Registrácia").forEachIndexed { i, label ->
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .background(
-                                    if (mode == i) BeamColors.Sage else Color.Transparent,
-                                    RoundedCornerShape(20.dp),
-                                )
-                                .clickable(enabled = true) { mode = i; error = null }
-                                .padding(vertical = 10.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text(
-                                label,
-                                fontSize = 14.sp,
-                                fontWeight = if (mode == i) FontWeight.SemiBold else FontWeight.Normal,
-                                color = if (mode == i) BeamColors.SageInk else BeamColors.Fog,
+                Entrance(2) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(1.dp, BeamColors.Line, RoundedCornerShape(24.dp))
+                            .background(BeamColors.Card, RoundedCornerShape(24.dp))
+                            .padding(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        listOf("Prihlásenie", "Registrácia").forEachIndexed { i, label ->
+                            val tabBg by animateColorAsState(
+                                if (mode == i) BeamColors.Sage else Color.Transparent,
+                                tween(200), label = "tab",
                             )
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .background(tabBg, RoundedCornerShape(20.dp))
+                                    .clickable { mode = i; error = null }
+                                    .padding(vertical = 10.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    label,
+                                    fontSize = 14.sp,
+                                    fontWeight = if (mode == i) FontWeight.SemiBold else FontWeight.Normal,
+                                    color = if (mode == i) BeamColors.SageInk else BeamColors.Fog,
+                                )
+                            }
                         }
                     }
                 }
@@ -130,6 +160,7 @@ fun AuthScreen(onAuthed: (onboarded: Boolean) -> Unit) {
                     { password = it },
                     KeyboardType.Password,
                     password = true,
+                    onDone = { submit() },
                 )
 
                 error?.let {
@@ -138,34 +169,48 @@ fun AuthScreen(onAuthed: (onboarded: Boolean) -> Unit) {
                 }
 
                 Spacer(Modifier.height(18.dp))
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp)
-                        .clickable(enabled = !busy) { submit() },
-                ) {
+                val interaction = remember { MutableInteractionSource() }
+                val pressed by interaction.collectIsPressedAsState()
+                val scale by animateFloatAsState(
+                    if (pressed) 0.96f else 1f,
+                    spring(dampingRatio = 0.55f), label = "submitScale",
+                )
+                Entrance(3) {
                     Box(
-                        Modifier
-                            .fillMaxSize()
-                            .alpha(if (busy) 0.5f else 1f)
-                            .background(
-                                BeamColors.Sage,
-                                RoundedCornerShape(16.dp),
-                            ),
-                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp)
+                            .graphicsLayer {
+                                scaleX = scale
+                                scaleY = scale
+                            }
+                            .clickable(interactionSource = interaction, indication = null, enabled = !busy) {
+                                submit()
+                            },
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            if (busy) {
-                                CircularProgressIndicator(color = BeamColors.SageInk, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
-                            } else {
-                                Icon(Icons.Rounded.Send, null, tint = BeamColors.SageInk, modifier = Modifier.size(18.dp))
-                                Spacer(Modifier.width(8.dp))
-                                Text(
-                                    if (mode == 0) "Prihlásiť sa" else "Vytvoriť účet",
-                                    color = BeamColors.SageInk,
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 15.sp,
-                                )
+                        Box(
+                            Modifier
+                                .fillMaxSize()
+                                .alpha(if (busy) 0.5f else 1f)
+                                .background(
+                                    BeamColors.Sage,
+                                    RoundedCornerShape(16.dp),
+                                ),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (busy) {
+                                    CircularProgressIndicator(color = BeamColors.SageInk, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
+                                } else {
+                                    Icon(Icons.Rounded.Send, null, tint = BeamColors.SageInk, modifier = Modifier.size(18.dp))
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(
+                                        if (mode == 0) "Prihlásiť sa" else "Vytvoriť účet",
+                                        color = BeamColors.SageInk,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 15.sp,
+                                    )
+                                }
                             }
                         }
                     }
@@ -185,6 +230,19 @@ fun AuthScreen(onAuthed: (onboarded: Boolean) -> Unit) {
 }
 
 @Composable
+private fun Entrance(index: Int, content: @Composable () -> Unit) {
+    val appear = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        delay(index * 90L)
+        appear.animateTo(1f, spring(dampingRatio = 0.85f, stiffness = 380f))
+    }
+    Box(Modifier.graphicsLayer {
+        alpha = appear.value
+        translationY = (1f - appear.value) * 14.dp.toPx()
+    }) { content() }
+}
+
+@Composable
 private fun Field(
     icon: ImageVector,
     placeholder: String,
@@ -192,6 +250,7 @@ private fun Field(
     onValue: (String) -> Unit,
     keyboardType: KeyboardType = KeyboardType.Text,
     password: Boolean = false,
+    onDone: (() -> Unit)? = null,
 ) {
     var showPassword by remember { mutableStateOf(false) }
     OutlinedTextField(
@@ -219,7 +278,11 @@ private fun Field(
             cursorColor = BeamColors.Sage,
         ),
         visualTransformation = if (password && !showPassword) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
-        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+        keyboardOptions = KeyboardOptions(
+            keyboardType = keyboardType,
+            imeAction = if (onDone != null) ImeAction.Done else ImeAction.Next,
+        ),
+        keyboardActions = KeyboardActions(onDone = { onDone?.invoke() }),
         modifier = Modifier.fillMaxWidth(),
     )
 }

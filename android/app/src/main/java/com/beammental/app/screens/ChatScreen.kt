@@ -1,6 +1,7 @@
 package com.beammental.app.screens
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -21,6 +22,8 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Settings
@@ -37,6 +40,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.beammental.app.data.Api
@@ -44,6 +49,7 @@ import com.beammental.app.data.ChatMessage
 import com.beammental.app.data.Locator
 import com.beammental.app.ui.effects.MascotBlob
 import com.beammental.app.ui.theme.BeamColors
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 private const val CRISIS_TEXT =
@@ -65,9 +71,17 @@ fun ChatScreen(onSettings: () -> Unit) {
     val listState = rememberLazyListState()
 
     LaunchedEffect(Unit) {
-        name = Locator.session.name() ?: "kamarát"
+        name = Locator.session.name() ?: ""
         messages = Locator.session.chatHistory()
+        // fresh install: pull the name from the profile so we don't show the fallback
+        if (name.isBlank()) {
+            Locator.api.fetchProfileName()?.let {
+                Locator.session.setName(it)
+                name = it
+            }
+        }
     }
+    val display = name.ifBlank { "kamarát" }
 
     suspend fun persist() {
         Locator.session.saveChatHistory(messages)
@@ -104,7 +118,7 @@ fun ChatScreen(onSettings: () -> Unit) {
         }
     }
 
-    Column(Modifier.fillMaxSize().background(BeamColors.Ink)) {
+    Column(Modifier.fillMaxSize().background(BeamColors.Ink).imePadding()) {
         // header
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
@@ -120,7 +134,7 @@ fun ChatScreen(onSettings: () -> Unit) {
             )
             Spacer(Modifier.width(8.dp))
             Text("Beam", fontWeight = FontWeight.SemiBold, color = BeamColors.Mist)
-            Text(" · $name", color = BeamColors.Fog, fontSize = 14.sp)
+            Text(" · $display", color = BeamColors.Fog, fontSize = 14.sp)
             Spacer(Modifier.weight(1f))
             Icon(
                 Icons.Outlined.Add, "Nový rozhovor",
@@ -142,20 +156,56 @@ fun ChatScreen(onSettings: () -> Unit) {
         // messages
         Box(Modifier.weight(1f)) {
             if (messages.isEmpty() && !busy) {
+                var greeted by remember { mutableStateOf(true) }
+                LaunchedEffect(Unit) {
+                    delay(2600)
+                    greeted = false
+                }
+                val appear = remember { Animatable(0f) }
+                LaunchedEffect(Unit) {
+                    appear.animateTo(1f, spring(dampingRatio = 0.6f, stiffness = 190f))
+                }
                 Column(
                     Modifier.fillMaxSize().padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
                 ) {
-                    MascotBlob(modifier = Modifier.size(96.dp), blobSize = 96.dp)
+                    MascotBlob(
+                        modifier = Modifier
+                            .size(96.dp)
+                            .graphicsLayer {
+                                scaleX = appear.value
+                                scaleY = appear.value
+                                alpha = appear.value
+                            },
+                        blobSize = 96.dp,
+                        animation = if (greeted) "happy" else "idle",
+                    )
                     Spacer(Modifier.height(16.dp))
-                    Text("Ahoj, $name.", color = BeamColors.Mist, fontWeight = FontWeight.Medium)
+                    Text("Ahoj, $display.", color = BeamColors.Mist, fontWeight = FontWeight.Medium, fontSize = 17.sp)
                     Spacer(Modifier.height(6.dp))
                     Text(
                         "Som Beam — tvoje kľudné miesto na rozhovor.\nČo ťa dnes trápi, alebo čo ťa teší?",
                         color = BeamColors.Fog, fontSize = 14.sp,
                         lineHeight = 20.sp,
                     )
+                    Spacer(Modifier.height(30.dp))
+                    listOf(
+                        "Dnes mám ťažký deň",
+                        "Neviem, čo cítim",
+                        "Chcem sa podeliť o radosť",
+                    ).forEach { hint ->
+                        Text(
+                            hint,
+                            color = BeamColors.Fog, fontSize = 14.sp,
+                            modifier = Modifier
+                                .background(BeamColors.Card, RoundedCornerShape(999.dp))
+                                .border(1.dp, BeamColors.Line, RoundedCornerShape(999.dp))
+                                .clickable { input = hint }
+                                .padding(horizontal = 18.dp, vertical = 11.dp),
+                        )
+                        Spacer(Modifier.height(10.dp))
+                    }
                 }
             }
 
@@ -237,6 +287,11 @@ fun ChatScreen(onSettings: () -> Unit) {
                 placeholder = { Text("Čo máš na srdci?", color = BeamColors.Fog) },
                 shape = RoundedCornerShape(22.dp),
                 maxLines = 4,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Text,
+                    imeAction = ImeAction.Send,
+                ),
+                keyboardActions = KeyboardActions(onSend = { send() }),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = BeamColors.Sage,
                     unfocusedBorderColor = BeamColors.Line,

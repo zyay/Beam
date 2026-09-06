@@ -126,6 +126,15 @@ class Api(private val session: Session) {
         return false
     }
 
+    /** Sync the display name from the server (fresh install / new device). */
+    suspend fun fetchProfileName(): String? {
+        val (code, obj) = get("api/profile")
+        if (code != 200 || obj == null) return null
+        return obj["name"]?.jsonPrimitive?.contentOrNull
+            ?.trim()
+            ?.takeIf { it.isNotBlank() }
+    }
+
     /** Settings: update the name while keeping the onboarding profile intact. */
     suspend fun saveName(name: String): Boolean {
         val (codeGet, cur) = get("api/profile")
