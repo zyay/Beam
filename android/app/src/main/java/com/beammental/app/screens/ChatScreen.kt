@@ -48,6 +48,7 @@ import com.beammental.app.data.Api
 import com.beammental.app.data.ChatMessage
 import com.beammental.app.data.Locator
 import com.beammental.app.ui.effects.MascotBlob
+import com.beammental.app.ui.effects.WaveBackground
 import com.beammental.app.ui.theme.BeamColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -118,7 +119,9 @@ fun ChatScreen(onSettings: () -> Unit) {
         }
     }
 
-    Column(Modifier.fillMaxSize().background(BeamColors.Ink).imePadding()) {
+    Box(Modifier.fillMaxSize().background(BeamColors.Ink)) {
+        WaveBackground(Modifier.matchParentSize())
+        Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding()) {
         // header
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
@@ -295,8 +298,8 @@ fun ChatScreen(onSettings: () -> Unit) {
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = BeamColors.Sage,
                     unfocusedBorderColor = BeamColors.Line,
-                    focusedContainerColor = Color(0xFF1D1913),
-                    unfocusedContainerColor = Color(0xFF1D1913),
+                    focusedContainerColor = BeamColors.Ink2,
+                    unfocusedContainerColor = BeamColors.Ink2,
                     cursorColor = BeamColors.Sage,
                 ),
                 modifier = Modifier.weight(1f),
@@ -326,6 +329,7 @@ fun ChatScreen(onSettings: () -> Unit) {
             ) {
                 Icon(Icons.Rounded.Send, "Poslať", tint = BeamColors.SageInk, modifier = Modifier.size(20.dp))
             }
+        }
         }
     }
 }

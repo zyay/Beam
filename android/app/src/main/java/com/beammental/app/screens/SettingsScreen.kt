@@ -14,19 +14,21 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Badge
 import androidx.compose.material.icons.outlined.Call
+import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.rounded.Logout
 import androidx.compose.material.icons.rounded.Phone
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.beammental.app.data.Locator
 import com.beammental.app.ui.effects.MascotBlob
+import com.beammental.app.ui.effects.WaveBackground
+import com.beammental.app.ui.theme.BEAM_THEMES
 import com.beammental.app.ui.theme.BeamColors
 import kotlinx.coroutines.launch
 
@@ -40,13 +42,17 @@ fun SettingsScreen(onBack: () -> Unit, onLoggedOut: () -> Unit) {
 
     LaunchedEffect(Unit) { name = Locator.session.name().orEmpty() }
 
-    Column(
-        Modifier
-            .fillMaxSize()
-            .background(BeamColors.Ink)
-            .verticalScroll(rememberScrollState())
-            .padding(20.dp),
-    ) {
+    Box(Modifier.fillMaxSize().background(BeamColors.Ink)) {
+        WaveBackground(Modifier.matchParentSize())
+        Column(
+            Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .imePadding()
+                .verticalScroll(rememberScrollState())
+                .padding(20.dp),
+        ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 Icons.AutoMirrored.Rounded.ArrowBack, "Späť",
@@ -70,8 +76,8 @@ fun SettingsScreen(onBack: () -> Unit, onLoggedOut: () -> Unit) {
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = BeamColors.Sage,
                     unfocusedBorderColor = BeamColors.Line,
-                    focusedContainerColor = Color(0xFF1D1913),
-                    unfocusedContainerColor = Color(0xFF1D1913),
+                    focusedContainerColor = BeamColors.Ink2,
+                    unfocusedContainerColor = BeamColors.Ink2,
                     cursorColor = BeamColors.Sage,
                 ),
                 modifier = Modifier.fillMaxWidth(),
@@ -102,6 +108,61 @@ fun SettingsScreen(onBack: () -> Unit, onLoggedOut: () -> Unit) {
                         color = BeamColors.SageInk, fontWeight = FontWeight.SemiBold, fontSize = 14.sp,
                     )
                 }
+            }
+        }
+
+        SectionLabel(Icons.Outlined.Palette, "Motív")
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .border(1.dp, BeamColors.Line, RoundedCornerShape(20.dp))
+                .background(BeamColors.Card, RoundedCornerShape(20.dp))
+                .padding(14.dp),
+        ) {
+            BEAM_THEMES.chunked(2).forEach { rowThemes ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    rowThemes.forEach { theme ->
+                        val active = BeamColors.current.key == theme.key
+                        Column(
+                            Modifier
+                                .weight(1f)
+                                .background(
+                                    if (active) theme.accent.copy(alpha = 0.14f) else BeamColors.Ink2,
+                                    RoundedCornerShape(14.dp),
+                                )
+                                .border(
+                                    1.dp,
+                                    if (active) theme.accent.copy(alpha = 0.55f) else BeamColors.Line,
+                                    RoundedCornerShape(14.dp),
+                                )
+                                .clickable {
+                                    BeamColors.apply(theme)
+                                    scope.launch { Locator.session.setTheme(theme.key) }
+                                }
+                                .padding(12.dp),
+                        ) {
+                            Row {
+                                theme.wave.forEach { c ->
+                                    Box(
+                                        Modifier
+                                            .size(16.dp)
+                                            .background(c, RoundedCornerShape(5.dp))
+                                    )
+                                    Spacer(Modifier.width(5.dp))
+                                }
+                            }
+                            Spacer(Modifier.height(9.dp))
+                            Text(
+                                theme.label,
+                                color = if (active) BeamColors.Mist else BeamColors.Fog,
+                                fontSize = 14.sp,
+                                fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
+                            )
+                        }
+                    }
+                    if (rowThemes.size == 1) Spacer(Modifier.weight(1f))
+                }
+                Spacer(Modifier.height(10.dp))
             }
         }
 
@@ -174,6 +235,7 @@ fun SettingsScreen(onBack: () -> Unit, onLoggedOut: () -> Unit) {
             }
         }
         Spacer(Modifier.height(24.dp))
+    }
     }
 }
 

@@ -17,7 +17,9 @@ import com.beammental.app.screens.AuthScreen
 import com.beammental.app.screens.ChatScreen
 import com.beammental.app.screens.OnboardingScreen
 import com.beammental.app.screens.SettingsScreen
+import com.beammental.app.ui.theme.BeamColors
 import com.beammental.app.ui.theme.BeamTheme
+import com.beammental.app.ui.theme.beamThemeByKey
 import kotlinx.coroutines.runBlocking
 
 enum class Screen { Auth, Onboarding, Chat, Settings }
@@ -33,6 +35,7 @@ class MainActivity : ComponentActivity() {
 
         // restore session synchronously once, then let the UI drive state
         runBlocking {
+            BeamColors.apply(beamThemeByKey(Locator.session.theme()))
             val token = Locator.session.token()
             screen = when {
                 token == null -> Screen.Auth

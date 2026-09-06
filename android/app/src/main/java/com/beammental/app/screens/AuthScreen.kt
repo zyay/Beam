@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.sp
 import com.beammental.app.data.Locator
 import com.beammental.app.ui.effects.BlueprintGrid
 import com.beammental.app.ui.effects.MascotBlob
+import com.beammental.app.ui.effects.WaveBackground
 import com.beammental.app.ui.theme.BeamColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -73,10 +74,12 @@ fun AuthScreen(onAuthed: (onboarded: Boolean) -> Unit) {
         }
     }
 
-    Column(Modifier.fillMaxSize().background(BeamColors.Ink)) {
-        Box(Modifier.weight(1f).imePadding()) {
-            BlueprintGrid(Modifier.matchParentSize())
-            Column(
+    Box(Modifier.fillMaxSize().background(BeamColors.Ink)) {
+        WaveBackground(Modifier.matchParentSize())
+        BlueprintGrid(Modifier.matchParentSize())
+        Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
+            Box(Modifier.weight(1f).imePadding()) {
+                Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
@@ -226,6 +229,7 @@ fun AuthScreen(onAuthed: (onboarded: Boolean) -> Unit) {
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
         )
+        }
     }
 }
 
@@ -273,8 +277,8 @@ private fun Field(
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = BeamColors.Sage,
             unfocusedBorderColor = BeamColors.Line,
-            focusedContainerColor = Color(0xFF1D1913),
-            unfocusedContainerColor = Color(0xFF1D1913),
+            focusedContainerColor = BeamColors.Ink2,
+            unfocusedContainerColor = BeamColors.Ink2,
             cursorColor = BeamColors.Sage,
         ),
         visualTransformation = if (password && !showPassword) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,

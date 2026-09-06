@@ -14,8 +14,15 @@ class Session(private val context: Context) {
 
     private val tokenKey = stringPreferencesKey("token")
     private val nameKey = stringPreferencesKey("name")
+    private val themeKey = stringPreferencesKey("theme")
     private val onboardedKey = booleanPreferencesKey("onboarded")
     private val chatKey = stringPreferencesKey("chat_history")
+
+    suspend fun theme(): String? = context.dataStore.data.first()[themeKey]
+
+    suspend fun setTheme(key: String) {
+        context.dataStore.edit { it[themeKey] = key }
+    }
 
     suspend fun token(): String? = context.dataStore.data.first()[tokenKey]
 

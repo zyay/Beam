@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.beammental.app.data.Locator
 import com.beammental.app.ui.effects.MascotBlob
+import com.beammental.app.ui.effects.WaveBackground
 import com.beammental.app.ui.theme.BeamColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -131,7 +132,9 @@ fun OnboardingScreen(onDone: () -> Unit) {
         spring(dampingRatio = 0.9f, stiffness = 120f),
     )
 
-    Column(Modifier.fillMaxSize().background(BeamColors.Ink).padding(20.dp)) {
+    Box(Modifier.fillMaxSize().background(BeamColors.Ink)) {
+        WaveBackground(Modifier.matchParentSize())
+        Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding().padding(20.dp)) {
         Spacer(Modifier.height(10.dp))
         // progress beam
         Box(Modifier.fillMaxWidth().height(4.dp).background(Color.White.copy(alpha = 0.06f), RoundedCornerShape(2.dp))) {
@@ -343,6 +346,7 @@ fun OnboardingScreen(onDone: () -> Unit) {
                 }
             }
         }
+        }
     }
 }
 
@@ -441,7 +445,7 @@ private fun Modifier.chipBg(active: Boolean): Modifier = this.background(
 private fun fieldColors() = OutlinedTextFieldDefaults.colors(
     focusedBorderColor = BeamColors.Sage,
     unfocusedBorderColor = BeamColors.Line,
-    focusedContainerColor = Color(0xFF1D1913),
-    unfocusedContainerColor = Color(0xFF1D1913),
+    focusedContainerColor = BeamColors.Ink2,
+    unfocusedContainerColor = BeamColors.Ink2,
     cursorColor = BeamColors.Sage,
 )
