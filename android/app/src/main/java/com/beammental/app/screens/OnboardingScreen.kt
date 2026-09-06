@@ -24,12 +24,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.BatteryAlert
-import androidx.compose.material.icons.rounded.Bed
-import androidx.compose.material.icons.rounded.Bedtime
+import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.SelfImprovement
 import androidx.compose.material.icons.rounded.SentimentNeutral
-import androidx.compose.material.icons.rounded.SentimentVeryDissatisfied
 import androidx.compose.material.icons.rounded.SentimentSatisfied
+import androidx.compose.material.icons.rounded.SentimentVeryDissatisfied
 import androidx.compose.material.icons.rounded.Snooze
 import androidx.compose.material.icons.rounded.Thunderstorm
 import androidx.compose.material3.*
@@ -57,25 +57,36 @@ import kotlinx.serialization.json.put
 import kotlin.math.min
 
 private val MOODS = listOf(
-    Triple("dobre", "Dobre", Icons.Rounded.SentimentSatisfied),
+    Triple("dobre", "V pohode", Icons.Rounded.SentimentSatisfied),
     Triple("ok", "Tak-tak", Icons.Rounded.SentimentNeutral),
-    Triple("tazko", "Ťažko", Icons.Rounded.Thunderstorm),
+    Triple("smutne", "Smutne", Icons.Rounded.SentimentVeryDissatisfied),
+    Triple("uzkostne", "Úzkostlivo", Icons.Rounded.Bolt),
+    Triple("tazko", "Vystresovane", Icons.Rounded.Thunderstorm),
     Triple("vycerpane", "Vyčerpane", Icons.Rounded.BatteryAlert),
 )
-private val STRESSORS = listOf("Práca", "Škola", "Spánok", "Vzťahy", "Zdravie", "Peniaze", "Osamelosť", "Iné")
+private val STRESSORS = listOf(
+    "Práca", "Škola", "Vzťahy", "Rodina", "Zdravie", "Peniaze",
+    "Spánok", "Osamelosť", "Sebakritika", "Budúcnosť", "Iné",
+)
 private val GOALS = listOf(
-    "Menej stresu", "Lepší spánok", "Hovoriť o pocitoch",
-    "Zostať pokojný/á", "Viac energie", "Rozumieť sám/samej sebe",
+    "Zvládať stres", "Lepšie spať", "Hovoriť o pocitoch", "Zostať v pokoji",
+    "Viac energie", "Porozumieť si", "Dôverovať si", "Nájsť rovnováhu",
 )
 private val SLEEP = listOf(
-    Triple("dobre", "Dobre", Icons.Rounded.Bedtime),
-    Triple("zaspavam", "Zaspávam ťažko", Icons.Rounded.Snooze),
-    Triple("budim", "Budím sa v noci", Icons.Rounded.Bed),
-    Triple("malo", "Málo spánku", Icons.Rounded.BatteryAlert),
+    Triple("dobre", "Spím dobre", Icons.Rounded.SentimentSatisfied),
+    Triple("zaspavam", "Ťažko zaspávam", Icons.Rounded.Snooze),
+    Triple("budim", "Budím sa v noci", Icons.Rounded.Thunderstorm),
+    Triple("malo", "Spím málo", Icons.Rounded.BatteryAlert),
 )
-private val CALM = listOf("Prechádzka", "Hudba", "Rozhovor s niekým", "Písanie", "Šport", "Ticho", "Film alebo kniha", "Iné")
-private val SUPPORT = listOf("Rodina", "Priatelia", "Partner/ka", "Kolegovia", "Psychológ/terapeut", "Nemám nikoho", "Ešte hľadám")
-private val CADENCES = listOf("Denne", "Každý druhý deň", "Iba keď potrebujem")
+private val CALM = listOf(
+    "Prechádzka", "Hudba", "Rozhovor", "Písanie", "Šport",
+    "Dýchanie", "Tvorivá práca", "Ticho a odpočinok",
+)
+private val SUPPORT = listOf(
+    "Rodina", "Priatelia", "Partner alebo partnerka", "Kolegovia",
+    "Psychológ alebo terapeut", "Linka pomoci", "Zatiaľ nikto", "Ešte hľadám",
+)
+private val CADENCES = listOf("Raz denne", "Každý druhý deň", "Len keď to potrebujem")
 
 private const val TOTAL_STEPS = 10
 
@@ -145,8 +156,17 @@ fun OnboardingScreen(onDone: () -> Unit) {
                     .background(BeamColors.Sage, RoundedCornerShape(2.dp)),
             )
         }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+        Row(
+            Modifier.fillMaxWidth().padding(top = 10.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             MascotBlob(modifier = Modifier.size(24.dp), blobSize = 24.dp)
+            Spacer(Modifier.width(8.dp))
+            Text(
+                "Krok ${step + 1} z $TOTAL_STEPS",
+                color = BeamColors.Fog, fontSize = 12.sp,
+            )
         }
 
         Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
@@ -163,19 +183,26 @@ fun OnboardingScreen(onDone: () -> Unit) {
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     when (s) {
-                        0 -> StepShell("Ahoj. Ako sa voláš?", "Aby sme si nemuseli tykať medzi anonymmi.") {
+                        0 -> StepShell("Vitaj v Beame.", "Krátke zoznámenie — pár otázok a všetko prispôsobíme tebe. Zaberie to asi dve minúty.\n\nAko ťa máme osloviť?") {
                             StaggerIn(0) {
                                 OutlinedTextField(
                                     value = name, onValueChange = { name = it },
-                                    placeholder = { Text("Tvoje meno", color = BeamColors.Fog) },
+                                    placeholder = { Text("Tvoje meno alebo prezývka", color = BeamColors.Fog) },
                                     singleLine = true,
                                     shape = RoundedCornerShape(14.dp),
                                     colors = fieldColors(),
                                     modifier = Modifier.fillMaxWidth(),
                                 )
                             }
+                            Spacer(Modifier.height(10.dp))
+                            StaggerIn(1) {
+                                Text(
+                                    "Stačí meno alebo prezývka — nič viac od teba nechceme.",
+                                    color = BeamColors.Fog, fontSize = 13.sp, textAlign = TextAlign.Center,
+                                )
+                            }
                         }
-                        1 -> StepShell("$name, ako sa dnes cítiš?", "Bez hodnotenia — len tak, ako to reálne je.") {
+                        1 -> StepShell("Ako sa dnes cítiš?", "Vyber stav, ktorý je ti teraz najbližší. Bez hodnotenia — aj ťažké dni sa počítajú.") {
                             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                 MOODS.chunked(2).forEachIndexed { row, pair ->
                                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -189,13 +216,13 @@ fun OnboardingScreen(onDone: () -> Unit) {
                                 }
                             }
                         }
-                        2 -> StepShell("Čo ťa teraz najviac zaťažuje?", "Vyber jednu alebo viac vecí.") {
+                        2 -> StepShell("Čo ťa teraz najviac zaťažuje?", "Môžeš vybrať viac oblastí. Čím presnejšie ich pomenúš, tým lepšie ti vieme porozumieť.") {
                             ChipFlow(STRESSORS, stressors) { stressors = it }
                         }
-                        3 -> StepShell("S čím ti to chceme skúsiť uľahčiť?", "Čo by ti tu najviac pomohlo?") {
+                        3 -> StepShell("S čím ti má Beam pomáhať?", "Vyber, na čom chceš pracovať. Priority môžeš neskôr kedykoľvek zmeniť.") {
                             ChipFlow(GOALS, goals) { goals = it }
                         }
-                        4 -> StepShell("Ako ti v posledných dňoch spíš?", "Spánok o stave povie niekedy viac než nálada.") {
+                        4 -> StepShell("Ako vyzerá tvoj spánok?", "Spánok prezradí o rozpoložení často viac než nálada. Ako to bolo posledné dni?") {
                             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                 SLEEP.chunked(2).forEachIndexed { row, pair ->
                                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -209,13 +236,13 @@ fun OnboardingScreen(onDone: () -> Unit) {
                                 }
                             }
                         }
-                        5 -> StepShell("Čo ti robí dobre, keď je ťažko?", "Vyber, čo ti reálne pomáha — alebo nechaj prázdne.") {
+                        5 -> StepShell("Čo ti pomáha, keď je ťažko?", "Vyber spôsoby, ktoré ti reálne robia dobre. Ak zatiaľ žiadne nemáš, môžeš preskočiť — nájdeme ich spolu.") {
                             ChipFlow(CALM, calm) { calm = it }
                         }
-                        6 -> StepShell("Na koho sa môžeš obrátiť?", "Opora nemusí byť veľká — stačí, keď existuje.") {
+                        6 -> StepShell("Na koho sa môžeš obrátiť?", "Opora nemusí byť veľká — stačí, keď existuje. Aj linka pomoci sa počíta.") {
                             ChipFlow(SUPPORT, support) { support = it }
                         }
-                        7 -> StepShell("Ako často si chceš písať?", "Len odhad — kedykoľvek to môžeš zmeniť.") {
+                        7 -> StepShell("Ako často sa chceš zastaviť?", "Pravidelná krátka chvíľa so sebou vie urobiť viac, než občasné dlhé rozhovory. Vyber si svoj rytmus.") {
                             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                 CADENCES.forEachIndexed { i, c ->
                                     StaggerIn(i) {
@@ -227,7 +254,7 @@ fun OnboardingScreen(onDone: () -> Unit) {
                                 }
                             }
                         }
-                        8 -> StepShell("Kedy ti to najviac sedí?", "Môžeme ti ráno alebo večer pripomenúť, že tu sme.") {
+                        8 -> StepShell("Kedy ti pripomienka sadne najviac?", "Môžeme ti raz denne dať vedieť, že sme tu. Čas to môžeš kedykoľvek zmeniť alebo pripomienky vypnúť.") {
                             StaggerIn(0) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(Icons.Rounded.Snooze, null, tint = BeamColors.Fog)
@@ -252,7 +279,7 @@ fun OnboardingScreen(onDone: () -> Unit) {
                                 )
                             }
                         }
-                        else -> StepShell("Hotovo, $name.", "Takto vyzerá tvoja výbava na štart.") {
+                        else -> StepShell("Hotovo, $name.", "Toto je tvoj profil — nájdeš ho aj v nastaveniach a môžeš ho kedykoľvek upraviť.") {
                             StaggerIn(0) {
                                 Row(
                                     Modifier.fillMaxWidth().border(1.dp, BeamColors.Line, RoundedCornerShape(20.dp)).background(BeamColors.Card, RoundedCornerShape(20.dp)).padding(18.dp),
@@ -277,7 +304,7 @@ fun OnboardingScreen(onDone: () -> Unit) {
                             }
                             Spacer(Modifier.height(14.dp))
                             Text(
-                                "Beam nie je zdravotnícka pomôcka ani náhrada psychológa. V kríze vždy volaj 0800 900 900.",
+                                "Beam nie je zdravotnícka pomôcka ani náhrada psychológa. V kríze vždy volaj 0800 900 900 (nonstop).",
                                 color = BeamColors.Fog, fontSize = 12.sp, textAlign = TextAlign.Center,
                             )
                         }
@@ -355,7 +382,7 @@ private fun StepShell(title: String, sub: String, content: @Composable () -> Uni
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(title, fontSize = 22.sp, fontWeight = FontWeight.SemiBold, color = BeamColors.Mist, textAlign = TextAlign.Center)
         Spacer(Modifier.height(8.dp))
-        Text(sub, fontSize = 14.sp, color = BeamColors.Fog, textAlign = TextAlign.Center)
+        Text(sub, fontSize = 14.sp, color = BeamColors.Fog, textAlign = TextAlign.Center, lineHeight = 20.sp)
         Spacer(Modifier.height(26.dp))
         content()
     }
@@ -398,7 +425,7 @@ private fun MoodCard(icon: ImageVector, label: String, active: Boolean, onClick:
     ) {
         Icon(icon, null, tint = if (active) BeamColors.Mist else BeamColors.Fog, modifier = Modifier.size(26.dp))
         Spacer(Modifier.height(8.dp))
-        Text(label, fontSize = 13.sp, color = if (active) BeamColors.Mist else BeamColors.Fog)
+        Text(label, fontSize = 13.sp, color = if (active) BeamColors.Mist else BeamColors.Fog, textAlign = TextAlign.Center)
     }
 }
 
@@ -425,7 +452,7 @@ private fun ChipFlow(options: List<String>, selected: Set<String>, onToggle: (Se
                                 Icon(Icons.Rounded.Check, null, tint = BeamColors.Mist, modifier = Modifier.size(15.dp))
                                 Spacer(Modifier.width(6.dp))
                             }
-                            Text(opt, fontSize = 14.sp, color = if (active) BeamColors.Mist else BeamColors.Fog)
+                            Text(opt, fontSize = 14.sp, color = if (active) BeamColors.Mist else BeamColors.Fog, maxLines = 2)
                         }
                     }
                 }

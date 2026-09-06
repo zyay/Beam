@@ -7,6 +7,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -92,7 +93,7 @@ class Api(private val session: Session) {
         val token = obj?.get("token")?.jsonPrimitive?.contentOrNull
         if (code == 200 && token != null) {
             session.saveAuth(token, name)
-            return AuthResult(true, obj?.get("hasProfile")?.jsonPrimitive?.contentOrNull == "true", null)
+            return AuthResult(true, obj?.get("hasProfile")?.jsonPrimitive?.booleanOrNull == true, null)
         }
         return AuthResult(false, false, obj.err() ?: connError(code))
     }
@@ -104,8 +105,11 @@ class Api(private val session: Session) {
         })
         val token = obj?.get("token")?.jsonPrimitive?.contentOrNull
         if (code == 200 && token != null) {
+            val hasProfile = obj?.get("hasProfile")?.jsonPrimitive?.booleanOrNull == true
             session.saveAuth(token, null)
-            return AuthResult(true, obj?.get("hasProfile")?.jsonPrimitive?.contentOrNull == "true", null)
+            // existing account already went through onboarding — don't ask again
+            if (hasProfile) session.setOnboarded()
+            return AuthResult(true, hasProfile, null)
         }
         return AuthResult(false, false, obj.err() ?: connError(code))
     }
@@ -165,7 +169,7 @@ class Api(private val session: Session) {
         val (code, obj) = post("api/chat", body, authed = true)
         if (code == 200 && obj != null) {
             val text = obj["text"]?.jsonPrimitive?.contentOrNull
-            val crisis = obj["crisis"]?.jsonPrimitive?.contentOrNull == "true"
+            val crisis = obj["crisis"]?.jsonPrimitive?.booleanOrNull == true
             return ChatResult(text, crisis, null)
         }
         val err = obj.err() ?: when (code) {
@@ -204,7 +208,7 @@ class Api(private val session: Session) {
                         return@use if (resp.code == 200 && obj != null) {
                             ChatResult(
                                 obj["text"]?.jsonPrimitive?.contentOrNull,
-                                obj["crisis"]?.jsonPrimitive?.contentOrNull == "true",
+                                obj["crisis"]?.jsonPrimitive?.booleanOrNull == true,
                                 null,
                             )
                         } else {

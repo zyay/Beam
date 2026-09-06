@@ -135,28 +135,32 @@ object Updater {
         }
     }
 
-    fun onWifi(context: Context): Boolean {
+    fun onWifi(context: Context): Boolean = runCatching {
         val cm = context.getSystemService(ConnectivityManager::class.java) ?: return false
         val caps = cm.getNetworkCapabilities(cm.activeNetwork) ?: return false
-        return caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
-    }
+        caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
+    }.getOrDefault(false)
 
-    /** Fires when Wi-Fi becomes available; caller unregisters via [unregisterWifi]. */
-    fun observeWifi(context: Context, onWifiAvailable: () -> Unit): ConnectivityManager.NetworkCallback {
-        val cm = context.getSystemService(ConnectivityManager::class.java)
+    /** Fires when Wi-Fi becomes available; caller unregisters via [unregisterWifi].
+     * Never throws — a failed registration just means no auto-download. */
+    fun observeWifi(context: Context, onWifiAvailable: () -> Unit): ConnectivityManager.NetworkCallback? {
         val cb = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
                 onWifiAvailable()
             }
         }
-        cm?.registerNetworkCallback(
-            NetworkRequest.Builder().addTransportType(NetworkCapabilities.TRANSPORT_WIFI).build(),
-            cb,
-        )
-        return cb
+        return runCatching {
+            val cm = context.getSystemService(ConnectivityManager::class.java) ?: return null
+            cm.registerNetworkCallback(
+                NetworkRequest.Builder().addTransportType(NetworkCapabilities.TRANSPORT_WIFI).build(),
+                cb,
+            )
+            cb
+        }.getOrNull()
     }
 
-    fun unregisterWifi(context: Context, cb: ConnectivityManager.NetworkCallback) {
+    fun unregisterWifi(context: Context, cb: ConnectivityManager.NetworkCallback?) {
+        if (cb == null) return
         runCatching { context.getSystemService(ConnectivityManager::class.java)?.unregisterNetworkCallback(cb) }
     }
 
