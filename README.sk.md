@@ -72,8 +72,8 @@ normálne do modelu a dostane empatiu, nie linku krízy.
 ## Android APK (natívna Kotlin appka)
 
 Pri každom pushi tagu `v*` (napr. `git tag v1.9.0 && git push origin v1.9.0`) vybuduje GitHub Actions
-`Beam-vX.Y.Z.apk` a vloží ho do [Releases](../../releases). Nainštalovaná appka si update stiahne sama,
-len na Wi-Fi.
+`Beam-vX.Y.Z.apk` a vloží ho do [Releases](https://github.com/zyay/beam-mental-health/releases).
+Nainštalovaná appka si update stiahne sama, len na Wi-Fi.
 
 Lokálny build (potrebný Android SDK):
 

@@ -213,7 +213,8 @@ git tag v1.2.3 && git push origin v1.2.3
 ```
 
 The workflow builds with Temurin 21, runs `assembleRelease`, and publishes `Beam-vX.Y.Z.apk` to
-[Releases](../../releases). Installed apps pick it up on their own over Wi-Fi.
+[Releases](https://github.com/zyay/beam-mental-health/releases). Installed apps pick it up on their
+own over Wi-Fi.
 
 ## Before you fork — three caveats
 
