@@ -16,13 +16,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-/** Static hairline blueprint grid over flat black — the auth background texture. */
+/** Static hairline blueprint grid over the warm dark background — auth texture. */
 @Composable
 fun BlueprintGrid(modifier: Modifier = Modifier, cell: Dp = 32.dp) {
     Canvas(modifier) {
         val step = cell.toPx()
-        val faint = Color.White.copy(alpha = 0.045f)
-        val strong = Color.White.copy(alpha = 0.09f)
+        val faint = Color(0xFFEDE8DC).copy(alpha = 0.035f)
+        val strong = Color(0xFFEDE8DC).copy(alpha = 0.07f)
         var i = 0
         var x = 0f
         while (x <= size.width) {

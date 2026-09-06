@@ -95,7 +95,7 @@ fun AuthScreen(onAuthed: (onboarded: Boolean) -> Unit) {
                             modifier = Modifier
                                 .weight(1f)
                                 .background(
-                                    if (mode == i) Color.White else Color.Transparent,
+                                    if (mode == i) BeamColors.Sage else Color.Transparent,
                                     RoundedCornerShape(20.dp),
                                 )
                                 .clickable(enabled = true) { mode = i; error = null }
@@ -106,7 +106,7 @@ fun AuthScreen(onAuthed: (onboarded: Boolean) -> Unit) {
                                 label,
                                 fontSize = 14.sp,
                                 fontWeight = if (mode == i) FontWeight.SemiBold else FontWeight.Normal,
-                                color = if (mode == i) BeamColors.Ink else BeamColors.Fog,
+                                color = if (mode == i) BeamColors.SageInk else BeamColors.Fog,
                             )
                         }
                     }
@@ -147,20 +147,20 @@ fun AuthScreen(onAuthed: (onboarded: Boolean) -> Unit) {
                             .fillMaxSize()
                             .alpha(if (busy) 0.5f else 1f)
                             .background(
-                                Color.White,
-                                RoundedCornerShape(14.dp),
+                                BeamColors.Sage,
+                                RoundedCornerShape(16.dp),
                             ),
                         contentAlignment = Alignment.Center,
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             if (busy) {
-                                CircularProgressIndicator(color = BeamColors.Ink, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
+                                CircularProgressIndicator(color = BeamColors.SageInk, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
                             } else {
-                                Icon(Icons.Rounded.Send, null, tint = BeamColors.Ink, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Rounded.Send, null, tint = BeamColors.SageInk, modifier = Modifier.size(18.dp))
                                 Spacer(Modifier.width(8.dp))
                                 Text(
                                     if (mode == 0) "Prihlásiť sa" else "Vytvoriť účet",
-                                    color = BeamColors.Ink,
+                                    color = BeamColors.SageInk,
                                     fontWeight = FontWeight.SemiBold,
                                     fontSize = 15.sp,
                                 )
@@ -199,11 +199,11 @@ private fun Field(
         singleLine = true,
         shape = RoundedCornerShape(14.dp),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = BeamColors.Mist,
+            focusedBorderColor = BeamColors.Sage,
             unfocusedBorderColor = BeamColors.Line,
-            focusedContainerColor = Color.White.copy(alpha = 0.03f),
-            unfocusedContainerColor = Color.White.copy(alpha = 0.03f),
-            cursorColor = BeamColors.Mist,
+            focusedContainerColor = Color(0xFF1D1913),
+            unfocusedContainerColor = Color(0xFF1D1913),
+            cursorColor = BeamColors.Sage,
         ),
         visualTransformation = if (password) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),

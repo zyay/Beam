@@ -68,11 +68,11 @@ fun SettingsScreen(onBack: () -> Unit, onLoggedOut: () -> Unit) {
                 singleLine = true,
                 shape = RoundedCornerShape(14.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = BeamColors.Mist,
+                    focusedBorderColor = BeamColors.Sage,
                     unfocusedBorderColor = BeamColors.Line,
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                    cursorColor = BeamColors.Mist,
+                    focusedContainerColor = Color(0xFF1D1913),
+                    unfocusedContainerColor = Color(0xFF1D1913),
+                    cursorColor = BeamColors.Sage,
                 ),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -94,12 +94,12 @@ fun SettingsScreen(onBack: () -> Unit, onLoggedOut: () -> Unit) {
                 Box(
                     Modifier
                         .fillMaxSize()
-                        .background(Color.White.copy(alpha = 0.10f), RoundedCornerShape(14.dp)),
+                        .background(BeamColors.Sage, RoundedCornerShape(14.dp)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
                         if (saved) "Uložené" else if (saving) "Ukladám…" else "Uložiť",
-                        color = BeamColors.Mist, fontWeight = FontWeight.SemiBold, fontSize = 14.sp,
+                        color = BeamColors.SageInk, fontWeight = FontWeight.SemiBold, fontSize = 14.sp,
                     )
                 }
             }

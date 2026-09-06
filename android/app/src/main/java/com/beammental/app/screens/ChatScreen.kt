@@ -3,11 +3,13 @@ package com.beammental.app.screens
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
@@ -132,7 +134,7 @@ fun ChatScreen(onSettings: () -> Unit) {
                     Text("Ahoj, $name.", color = BeamColors.Mist, fontWeight = FontWeight.Medium)
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        "Napíš mi hocikoľvek — ako sa máš, čo ťa trápi,\nalebo ti len urob spoločnosť.",
+                        "Som Beam — tvoje kľudné miesto na rozhovor.\nČo ťa dnes trápi, alebo čo ťa teší?",
                         color = BeamColors.Fog, fontSize = 14.sp,
                         lineHeight = 20.sp,
                     )
@@ -155,7 +157,7 @@ fun ChatScreen(onSettings: () -> Unit) {
                                 lineHeight = 22.sp,
                                 modifier = Modifier
                                     .fillMaxWidth(0.85f)
-                                    .background(Color.White.copy(alpha = 0.12f), RoundedCornerShape(18.dp, 18.dp, 4.dp, 18.dp))
+                                    .background(BeamColors.Sage.copy(alpha = 0.16f), RoundedCornerShape(18.dp, 18.dp, 4.dp, 18.dp))
                                     .padding(horizontal = 14.dp, vertical = 11.dp),
                             )
                         }
@@ -211,15 +213,15 @@ fun ChatScreen(onSettings: () -> Unit) {
             OutlinedTextField(
                 value = input,
                 onValueChange = { input = it },
-                placeholder = { Text("Napíš správu…", color = BeamColors.Fog) },
+                placeholder = { Text("Čo máš na srdci?", color = BeamColors.Fog) },
                 shape = RoundedCornerShape(22.dp),
                 maxLines = 4,
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = BeamColors.Mist,
+                    focusedBorderColor = BeamColors.Sage,
                     unfocusedBorderColor = BeamColors.Line,
-                    focusedContainerColor = Color.White.copy(alpha = 0.04f),
-                    unfocusedContainerColor = Color.White.copy(alpha = 0.04f),
-                    cursorColor = BeamColors.Mist,
+                    focusedContainerColor = Color(0xFF1D1913),
+                    unfocusedContainerColor = Color(0xFF1D1913),
+                    cursorColor = BeamColors.Sage,
                 ),
                 modifier = Modifier.weight(1f),
             )
@@ -230,13 +232,13 @@ fun ChatScreen(onSettings: () -> Unit) {
                     .size(48.dp)
                     .alpha(if (enabled) 1f else 0.5f)
                     .background(
-                        Color.White,
-                        RoundedCornerShape(16.dp),
+                        BeamColors.Sage,
+                        CircleShape,
                     )
                     .clickable(enabled = enabled) { send() },
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(Icons.Rounded.Send, "Poslať", tint = BeamColors.Ink, modifier = Modifier.size(21.dp))
+                Icon(Icons.Rounded.Send, "Poslať", tint = BeamColors.SageInk, modifier = Modifier.size(20.dp))
             }
         }
     }
@@ -247,7 +249,8 @@ private fun CrisisCard() {
     Column(
         Modifier
             .fillMaxWidth()
-            .background(Color.White.copy(alpha = 0.07f), RoundedCornerShape(16.dp))
+            .background(BeamColors.Card, RoundedCornerShape(16.dp))
+            .border(1.dp, BeamColors.Line, RoundedCornerShape(16.dp))
             .padding(14.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {

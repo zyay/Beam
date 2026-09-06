@@ -100,12 +100,12 @@ fun OnboardingScreen(onDone: () -> Unit) {
     Column(Modifier.fillMaxSize().background(BeamColors.Ink).padding(20.dp)) {
         Spacer(Modifier.height(10.dp))
         // progress beam
-        Box(Modifier.fillMaxWidth().height(4.dp).background(Color.White.copy(alpha = 0.06f), RoundedCornerShape(2.dp))) {
+        Box(Modifier.fillMaxWidth().height(4.dp).background(Color(0xFF252019), RoundedCornerShape(2.dp))) {
             Box(
                 Modifier
                     .fillMaxWidth((step + 1) / 7f)
                     .fillMaxHeight()
-                    .background(Color.White, RoundedCornerShape(2.dp)),
+                    .background(BeamColors.Sage, RoundedCornerShape(2.dp)),
             )
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
@@ -235,8 +235,8 @@ fun OnboardingScreen(onDone: () -> Unit) {
                     Modifier
                         .fillMaxSize()
                         .background(
-                            Color.White,
-                            RoundedCornerShape(14.dp),
+                            BeamColors.Sage,
+                            RoundedCornerShape(16.dp),
                         ),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -247,11 +247,11 @@ fun OnboardingScreen(onDone: () -> Unit) {
                                 step < 6 -> "Ďalej"
                                 else -> "Začať si písať"
                             },
-                            color = BeamColors.Ink, fontWeight = FontWeight.SemiBold, fontSize = 15.sp,
+                            color = BeamColors.SageInk, fontWeight = FontWeight.SemiBold, fontSize = 15.sp,
                         )
                         if (!saving) {
                             Spacer(Modifier.width(6.dp))
-                            Icon(Icons.AutoMirrored.Rounded.ArrowForward, null, tint = BeamColors.Ink, modifier = Modifier.size(17.dp))
+                            Icon(Icons.AutoMirrored.Rounded.ArrowForward, null, tint = BeamColors.SageInk, modifier = Modifier.size(17.dp))
                         }
                     }
                 }
@@ -275,8 +275,8 @@ private fun StepShell(title: String, sub: String, content: @Composable () -> Uni
 private fun MoodCard(icon: ImageVector, label: String, active: Boolean, modifier: Modifier, onClick: () -> Unit) {
     Column(
         modifier = modifier
-            .background(if (active) Color.White.copy(alpha = 0.12f) else BeamColors.Card, RoundedCornerShape(16.dp))
-            .border(1.dp, if (active) Color.White.copy(alpha = 0.55f) else BeamColors.Line, RoundedCornerShape(16.dp))
+            .background(if (active) BeamColors.Sage.copy(alpha = 0.16f) else BeamColors.Card, RoundedCornerShape(16.dp))
+            .border(1.dp, if (active) BeamColors.Sage.copy(alpha = 0.55f) else BeamColors.Line, RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
             .padding(vertical = 18.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -320,15 +320,15 @@ private fun ChipFlow(options: List<String>, selected: Set<String>, onToggle: (Se
 
 @Composable
 private fun Modifier.chipBg(active: Boolean): Modifier = this.background(
-    if (active) Color.White.copy(alpha = 0.10f) else BeamColors.Card,
+    if (active) BeamColors.Sage.copy(alpha = 0.14f) else BeamColors.Card,
     RoundedCornerShape(999.dp),
-).border(1.dp, if (active) Color.White.copy(alpha = 0.55f) else BeamColors.Line, RoundedCornerShape(999.dp))
+).border(1.dp, if (active) BeamColors.Sage.copy(alpha = 0.55f) else BeamColors.Line, RoundedCornerShape(999.dp))
 
 @Composable
 private fun fieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor = BeamColors.Mist,
+    focusedBorderColor = BeamColors.Sage,
     unfocusedBorderColor = BeamColors.Line,
-    focusedContainerColor = Color.White.copy(alpha = 0.03f),
-    unfocusedContainerColor = Color.White.copy(alpha = 0.03f),
-    cursorColor = BeamColors.Mist,
+    focusedContainerColor = Color(0xFF1D1913),
+    unfocusedContainerColor = Color(0xFF1D1913),
+    cursorColor = BeamColors.Sage,
 )
