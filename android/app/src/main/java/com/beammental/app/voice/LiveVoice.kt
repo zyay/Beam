@@ -61,6 +61,9 @@ class LiveVoice(
     @Volatile private var flushRequested = false
     @Volatile private var crisisHandled = false
 
+    /** Mic muted: the recorder keeps draining but nothing is sent upstream. */
+    @Volatile var muted = false
+
     private var userTextAt = 0L
     private var newModelTurn = false
 
@@ -305,6 +308,10 @@ class LiveVoice(
             while (active) {
                 val n = rec.read(pcm, 0, pcm.size)
                 if (n <= 0) continue
+                if (muted) {
+                    _level.value = 0f
+                    continue
+                }
                 var sum = 0.0
                 for (i in 0 until n) sum += pcm[i].toDouble() * pcm[i]
                 _level.value = ((sqrt(sum / n) / 9000.0).coerceIn(0.0, 1.0)).toFloat()

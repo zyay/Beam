@@ -79,6 +79,7 @@ fun ChatScreen(onSettings: () -> Unit) {
     var messages by remember { mutableStateOf(listOf<Pair<String, String>>()) }
     var input by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
+    var streaming by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var voiceOpen by remember { mutableStateOf(false) }
     var updateUi by remember { mutableStateOf<UpdateUi>(UpdateUi.None) }
@@ -163,17 +164,28 @@ fun ChatScreen(onSettings: () -> Unit) {
         }
 
         messages = messages + (content to "user")
+        val history = messages
+            .filter { it.second == "user" || it.second == "assistant" }
+            .takeLast(12)
+            .map { (text, role) -> ChatMessage(role, text) }
+        // empty assistant placeholder grows as SSE deltas arrive
+        messages = messages + ("" to "assistant")
         busy = true
+        streaming = false
         scope.launch {
-            val history = messages
-                .filter { it.second == "user" || it.second == "assistant" }
-                .takeLast(12)
-                .map { (text, role) -> ChatMessage(role, text) }
-            val res = Locator.api.chat(history)
+            val res = Locator.api.chatStream(history) { delta ->
+                streaming = true
+                val cur = messages.toMutableList()
+                val i = cur.lastIndex
+                if (i >= 0) cur[i] = (cur[i].first + delta) to cur[i].second
+                messages = cur
+            }
             busy = false
-            if (res.text != null) {
-                messages = messages + (res.text to "assistant")
+            if (res.text != null && res.text.isNotBlank()) {
+                val role = if (res.crisis) "assistant:crisis" else "assistant"
+                messages = messages.dropLast(1) + (res.text to role)
             } else {
+                messages = messages.dropLast(1)
                 error = res.error
             }
             persist()
@@ -297,7 +309,7 @@ fun ChatScreen(onSettings: () -> Unit) {
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                itemsIndexed(messages, key = { i, _ -> i }) { _, (text, role) ->
+                itemsIndexed(messages, key = { i, _ -> i }) { index, (text, role) ->
                     when (role) {
                         "user" -> Row(
                             Modifier.fillMaxWidth().animateItem(),
@@ -315,16 +327,20 @@ fun ChatScreen(onSettings: () -> Unit) {
                             )
                         }
                         "assistant:crisis" -> Box(Modifier.fillMaxWidth().animateItem()) { CrisisCard() }
-                        else -> Text(
-                            text,
-                            color = BeamColors.Mist,
-                            fontSize = 15.sp,
-                            lineHeight = 22.sp,
-                            modifier = Modifier.fillMaxWidth(0.9f).animateItem(),
-                        )
+                        else -> {
+                            // typewriter caret while the answer streams in
+                            val shown = if (busy && index == messages.lastIndex) text + "▍" else text
+                            Text(
+                                shown,
+                                color = BeamColors.Mist,
+                                fontSize = 15.sp,
+                                lineHeight = 22.sp,
+                                modifier = Modifier.fillMaxWidth(0.9f).animateItem(),
+                            )
+                        }
                     }
                 }
-                if (busy) {
+                if (busy && !streaming) {
                     item(key = "busy") {
                         Row(Modifier.animateItem(), verticalAlignment = Alignment.CenterVertically) {
                             MascotBlob(modifier = Modifier.size(36.dp), blobSize = 36.dp, thinking = true)
@@ -347,9 +363,12 @@ fun ChatScreen(onSettings: () -> Unit) {
                 }
             }
 
-            // auto-scroll to bottom
-            LaunchedEffect(messages.size, busy) {
-                if (messages.isNotEmpty()) listState.animateScrollToItem(listState.layoutInfo.totalItemsCount - 1)
+            // auto-scroll: follow the growing stream instantly, settle with animation
+            LaunchedEffect(messages.size, messages.lastOrNull()?.first?.length, busy) {
+                if (messages.isEmpty()) return@LaunchedEffect
+                val last = listState.layoutInfo.totalItemsCount - 1
+                if (last < 0) return@LaunchedEffect
+                if (busy) listState.scrollToItem(last) else listState.animateScrollToItem(last)
             }
         }
 

@@ -32,9 +32,11 @@ export async function POST(req: NextRequest) {
   }
 
   let messages: Msg[] = [];
+  let stream = false;
   try {
     const body = await req.json();
     messages = Array.isArray(body.messages) ? body.messages : [];
+    stream = body.stream === true;
   } catch {
     return NextResponse.json({ error: "Zlý formát." }, { status: 400 });
   }
@@ -69,6 +71,7 @@ export async function POST(req: NextRequest) {
     messages: [{ role: "system", content: SYSTEM }, ...messages],
     max_tokens: 1000,
     temperature: 0.6,
+    ...(stream ? { stream: true } : {}),
   };
 
   try {
@@ -89,6 +92,16 @@ export async function POST(req: NextRequest) {
         { text: "Chat služba teraz neodpovedá. Skús to o chvíľu znova." },
         { status: 502 }
       );
+    }
+    // streaming clients (native app): pass the gateway's SSE straight through
+    if (stream && r.body) {
+      return new Response(r.body, {
+        headers: {
+          "Content-Type": "text/event-stream; charset=utf-8",
+          "Cache-Control": "no-cache, no-transform",
+          Connection: "keep-alive",
+        },
+      });
     }
     const data = await r.json();
     const text: string =

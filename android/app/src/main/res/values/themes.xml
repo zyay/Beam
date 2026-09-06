@@ -5,4 +5,10 @@
         <item name="android:navigationBarColor">#060607</item>
         <item name="android:windowLightStatusBar">false</item>
     </style>
+
+    <style name="Theme.Beam.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#060607</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash</item>
+        <item name="postSplashScreenTheme">@style/Theme.Beam</item>
+    </style>
 </resources>

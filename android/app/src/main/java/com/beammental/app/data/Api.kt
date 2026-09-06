@@ -176,6 +176,76 @@ class Api(private val session: Session) {
         return ChatResult(null, false, err)
     }
 
+    /** Streaming chat: SSE deltas via [onDelta] (called on IO thread).
+     * Errors and the crisis protocol still arrive as plain JSON. */
+    suspend fun chatStream(history: List<ChatMessage>, onDelta: (String) -> Unit): ChatResult =
+        withContext(Dispatchers.IO) {
+            val body = buildJsonObject {
+                put("stream", true)
+                put("messages", kotlinx.serialization.json.JsonArray(
+                    history.map { m -> buildJsonObject {
+                        put("role", m.role)
+                        put("content", m.content)
+                    } }
+                ))
+            }
+            val acc = StringBuilder()
+            val outcome = runCatching {
+                val rb = Request.Builder()
+                    .url(base + "api/chat")
+                    .header("Authorization", "Bearer ${session.token().orEmpty()}")
+                    .post(RequestBody.create("application/json".toMediaType(), body.toString()))
+                    .build()
+                client.newCall(rb).execute().use { resp ->
+                    val ctype = resp.header("Content-Type").orEmpty()
+                    if (resp.code != 200 || "application/json" in ctype) {
+                        val text = resp.body?.string().orEmpty()
+                        val obj = runCatching { json.parseToJsonElement(text).jsonObject }.getOrNull()
+                        return@use if (resp.code == 200 && obj != null) {
+                            ChatResult(
+                                obj["text"]?.jsonPrimitive?.contentOrNull,
+                                obj["crisis"]?.jsonPrimitive?.contentOrNull == "true",
+                                null,
+                            )
+                        } else {
+                            ChatResult(null, false, obj.err() ?: when (resp.code) {
+                                502, 504 -> "Chat služba je preťažená. Skús to o chvíľu."
+                                else -> "Server neodpovedá (${resp.code})."
+                            })
+                        }
+                    }
+                    resp.body?.byteStream()?.bufferedReader(Charsets.UTF_8)?.let { br ->
+                        while (true) {
+                            val line = br.readLine() ?: break
+                            if (!line.startsWith("data:")) continue
+                            val data = line.removePrefix("data:").trim()
+                            if (data == "[DONE]") break
+                            val chunk = runCatching { json.parseToJsonElement(data).jsonObject }.getOrNull() ?: continue
+                            val delta = chunk["choices"]?.jsonArray?.getOrNull(0)?.jsonObject
+                                ?.get("delta")?.jsonObject
+                                ?.get("content")?.jsonPrimitive?.contentOrNull
+                            if (!delta.isNullOrEmpty()) {
+                                acc.append(delta)
+                                onDelta(delta)
+                            }
+                        }
+                    }
+                    val full = acc.toString().trim()
+                    if (full.isEmpty()) {
+                        ChatResult(null, false, "Chat služba neodpovedala. Skús to znova.")
+                    } else {
+                        ChatResult(full, false, null)
+                    }
+                }
+            }.getOrNull()
+            // mid-stream network failure with partial text: keep what arrived
+            outcome ?: if (acc.isNotBlank()) {
+                ChatResult(acc.toString().trim(), false, null)
+            } else {
+                ChatResult(null, false, "Nepodarilo sa pripojiť k serveru. Skús to o chvíľu.")
+            }
+        }
+
     private fun connError(code: Int): String =
         if (code == 0) "Nepodarilo sa pripojiť k serveru. Skús to o chvíľu."
         else "Server neodpovedá ($code)."

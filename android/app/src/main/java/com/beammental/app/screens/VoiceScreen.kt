@@ -16,6 +16,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -25,6 +26,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Mic
+import androidx.compose.material.icons.rounded.MicOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -45,6 +47,7 @@ import com.beammental.app.ui.effects.WaveBackground
 import com.beammental.app.ui.theme.BeamColors
 import com.beammental.app.voice.LiveVoice
 import com.beammental.app.voice.VoicePhase
+import kotlinx.coroutines.delay
 
 /** Full-screen live voice talk with Beam (Gemini Live API). */
 @Composable
@@ -63,8 +66,11 @@ fun VoiceScreen(onClose: () -> Unit) {
     ) { granted -> hasMic = granted }
 
     val keyReady = BuildConfig.BEAM_GOOGLE_KEY.isNotBlank()
+    var muted by remember { mutableStateOf(false) }
+    var elapsedSec by remember { mutableIntStateOf(0) }
 
     fun startVoice() {
+        muted = false
         val v = LiveVoice(BuildConfig.BEAM_GOOGLE_KEY) { crisisShown = true }
         voice = v
         v.start()
@@ -80,6 +86,18 @@ fun VoiceScreen(onClose: () -> Unit) {
             onDispose { v.stop() }
         }
     }
+    val callEnded = v == null || v.phase == VoicePhase.ENDED || v.phase == VoicePhase.FAILED
+
+    // session timer, resets whenever a (new) call becomes active
+    LaunchedEffect(!callEnded) {
+        if (!callEnded) {
+            elapsedSec = 0
+            while (true) {
+                delay(1000)
+                elapsedSec++
+            }
+        }
+    }
 
     Box(Modifier.fillMaxSize().background(BeamColors.Ink)) {
         WaveBackground(Modifier.matchParentSize())
@@ -93,6 +111,13 @@ fun VoiceScreen(onClose: () -> Unit) {
             ) {
                 Text("Hlasový rozhovor", fontWeight = FontWeight.SemiBold, color = BeamColors.Mist)
                 Spacer(Modifier.weight(1f))
+                if (!callEnded && elapsedSec > 0) {
+                    Text(
+                        "%02d:%02d".format(elapsedSec / 60, elapsedSec % 60),
+                        color = BeamColors.Fog, fontSize = 13.sp,
+                    )
+                    Spacer(Modifier.width(14.dp))
+                }
                 Icon(
                     Icons.Rounded.Close, "Zavrieť",
                     tint = BeamColors.Fog,
@@ -166,7 +191,7 @@ fun VoiceScreen(onClose: () -> Unit) {
 
                     val status = when (phase) {
                         VoicePhase.CONNECTING -> "Pripájam sa…"
-                        VoicePhase.LISTENING -> "Počúvam ťa…"
+                        VoicePhase.LISTENING -> if (muted) "Mikrofón je stlmený." else "Počúvam ťa…"
                         VoicePhase.SPEAKING -> "Beam rozpráva…"
                         VoicePhase.ENDED -> "Hovor sa skončil."
                         VoicePhase.FAILED -> v.failure ?: "Niečo sa pokazilo."
@@ -226,7 +251,58 @@ fun VoiceScreen(onClose: () -> Unit) {
                             .padding(horizontal = 26.dp, vertical = 10.dp),
                     )
                 }
-                val ended = v == null || v.phase == VoicePhase.ENDED || v.phase == VoicePhase.FAILED
+                if (v != null && !callEnded) {
+                    if (elapsedSec >= 840) {
+                        Text(
+                            "Hovor je už dlhý — ak sa spojenie preruší, klepni na „Skúsiť znova“.",
+                            color = BeamColors.Fog, fontSize = 12.sp, textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                        )
+                    }
+                    Row(
+                        Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                    ) {
+                        val micInteraction = remember { MutableInteractionSource() }
+                        val micPressed by micInteraction.collectIsPressedAsState()
+                        val micScale by animateFloatAsState(if (micPressed) 0.94f else 1f, spring(dampingRatio = 0.55f))
+                        Row(
+                            Modifier
+                                .graphicsLayer { scaleX = micScale; scaleY = micScale }
+                                .background(
+                                    if (muted) Color(0xFFB4525E).copy(alpha = 0.18f) else BeamColors.Card,
+                                    RoundedCornerShape(999.dp),
+                                )
+                                .border(
+                                    1.dp,
+                                    if (muted) Color(0xFFB4525E).copy(alpha = 0.5f) else BeamColors.Line,
+                                    RoundedCornerShape(999.dp),
+                                )
+                                .clickable(interactionSource = micInteraction, indication = null) {
+                                    muted = !muted
+                                    v.muted = muted
+                                }
+                                .padding(horizontal = 22.dp, vertical = 11.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                if (muted) Icons.Rounded.MicOff else Icons.Rounded.Mic,
+                                null,
+                                tint = if (muted) Color(0xFFFFC4CB) else BeamColors.Sage,
+                                modifier = Modifier.size(17.dp),
+                            )
+                            Spacer(Modifier.width(9.dp))
+                            Text(
+                                if (muted) "Zapnúť mikrofón" else "Stlmiť mikrofón",
+                                color = if (muted) Color(0xFFFFC4CB) else BeamColors.Mist,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium,
+                            )
+                        }
+                    }
+                }
+                val ended = callEnded
                 val interaction = remember { MutableInteractionSource() }
                 val pressed by interaction.collectIsPressedAsState()
                 val scale by animateFloatAsState(if (pressed) 0.96f else 1f, spring(dampingRatio = 0.55f))
