@@ -1,5 +1,9 @@
 package com.beammental.app.screens
 
+import android.Manifest
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
@@ -48,9 +52,12 @@ import androidx.compose.ui.unit.sp
 import com.beammental.app.data.Api
 import com.beammental.app.data.ChatMessage
 import com.beammental.app.data.Locator
+import com.beammental.app.data.UpdateInfo
+import com.beammental.app.data.Updater
 import com.beammental.app.ui.effects.MascotBlob
 import com.beammental.app.ui.effects.WaveBackground
 import com.beammental.app.ui.theme.BeamColors
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -65,13 +72,65 @@ private const val CRISIS_TEXT =
 fun ChatScreen(onSettings: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val notifPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { }
     var name by remember { mutableStateOf("") }
     var messages by remember { mutableStateOf(listOf<Pair<String, String>>()) }
     var input by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var voiceOpen by remember { mutableStateOf(false) }
+    var updateUi by remember { mutableStateOf<UpdateUi>(UpdateUi.None) }
+    var updateJob by remember { mutableStateOf<Job?>(null) }
     val listState = rememberLazyListState()
+
+    fun startDownload(info: UpdateInfo) {
+        updateJob?.cancel()
+        updateUi = UpdateUi.Downloading(info, 0f)
+        updateJob = scope.launch {
+            val file = Updater.download(context, info) { p ->
+                val st = updateUi
+                if (st is UpdateUi.Downloading && st.info == info) {
+                    updateUi = UpdateUi.Downloading(info, p)
+                }
+            }
+            if (file != null) {
+                updateUi = UpdateUi.Ready(info, file)
+                Updater.notifyReady(context, info, file)
+            } else if (updateUi is UpdateUi.Downloading) {
+                updateUi = UpdateUi.Failed(info)
+            }
+        }
+    }
+
+    // auto-update: check the latest release, download over Wi-Fi, notify
+    LaunchedEffect(Unit) {
+        val info = Updater.checkLatest() ?: return@LaunchedEffect
+        if (Build.VERSION.SDK_INT >= 33 && !Updater.notificationsEnabled(context)) {
+            notifPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+        Updater.cleanup(context, info)
+        Updater.downloaded(context, info)?.let { f ->
+            updateUi = UpdateUi.Ready(info, f)
+            return@LaunchedEffect
+        }
+        if (Updater.onWifi(context)) {
+            startDownload(info)
+        } else {
+            updateUi = UpdateUi.WaitingWifi(info)
+            Updater.notifyAvailable(context, info)
+        }
+    }
+
+    // Wi-Fi arriving later continues the auto-update
+    DisposableEffect(Unit) {
+        val cb = Updater.observeWifi(context) {
+            val st = updateUi
+            if (st is UpdateUi.WaitingWifi) startDownload(st.info)
+        }
+        onDispose { Updater.unregisterWifi(context, cb) }
+    }
 
     LaunchedEffect(Unit) {
         name = Locator.session.name() ?: ""
@@ -163,6 +222,18 @@ fun ChatScreen(onSettings: () -> Unit) {
             )
         }
         HorizontalDivider(color = BeamColors.Line, thickness = 1.dp)
+
+        if (updateUi != UpdateUi.None) {
+            UpdateBanner(
+                state = updateUi,
+                onDownload = { info -> startDownload(info) },
+                onInstall = { file -> Updater.install(context, file) },
+                onDismiss = {
+                    updateJob?.cancel()
+                    updateUi = UpdateUi.None
+                },
+            )
+        }
 
         // messages
         Box(Modifier.weight(1f)) {

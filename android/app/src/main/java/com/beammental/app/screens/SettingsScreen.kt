@@ -15,6 +15,7 @@ import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Badge
 import androidx.compose.material.icons.outlined.Call
 import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.SystemUpdate
 import androidx.compose.material.icons.rounded.Logout
 import androidx.compose.material.icons.rounded.Phone
 import androidx.compose.material3.*
@@ -25,6 +26,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.beammental.app.BuildConfig
 import com.beammental.app.data.Locator
 import com.beammental.app.ui.effects.MascotBlob
 import com.beammental.app.ui.effects.WaveBackground
@@ -163,6 +165,17 @@ fun SettingsScreen(onBack: () -> Unit, onLoggedOut: () -> Unit) {
                     if (rowThemes.size == 1) Spacer(Modifier.weight(1f))
                 }
                 Spacer(Modifier.height(10.dp))
+            }
+        }
+
+        SectionLabel(Icons.Outlined.SystemUpdate, "Aplikácia")
+        Column(Modifier.fillMaxWidth().border(1.dp, BeamColors.Line, RoundedCornerShape(20.dp)).background(BeamColors.Card, RoundedCornerShape(20.dp))) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Outlined.SystemUpdate, null, tint = BeamColors.Fog, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(12.dp))
+                Text("Verzia", color = BeamColors.Mist, fontSize = 15.sp)
+                Spacer(Modifier.weight(1f))
+                Text("Beam ${BuildConfig.VERSION_NAME} · aktualizuje sa sama na Wi-Fi", color = BeamColors.Fog, fontSize = 12.sp)
             }
         }
 
