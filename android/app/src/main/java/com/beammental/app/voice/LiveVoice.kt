@@ -3,13 +3,16 @@ package com.beammental.app.voice
 import android.annotation.SuppressLint
 import android.content.Context
 import android.media.AudioAttributes
+import android.media.AudioFocusRequest
 import android.media.AudioFormat
 import android.media.AudioManager
 import android.media.AudioRecord
 import android.media.AudioTrack
 import android.media.MediaRecorder
+import android.os.Build
 import android.os.PowerManager
 import android.util.Base64
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -93,6 +96,7 @@ class LiveVoice(
     private var savedSpeaker: Boolean = false
     @Volatile private var audioSessionSet = false
     @Volatile private var wakeLock: PowerManager.WakeLock? = null
+    private var focusRequest: AudioFocusRequest? = null
 
     private val systemInstruction =
         "Si Beam — teplý, pokojný hlasový spoločník na rozhovory o duševnej pohode. " +
@@ -127,9 +131,10 @@ class LiveVoice(
             TranscribeListener(),
         )
 
-        // watchdog: sockets that open but never finish setup must not hang CONNECTING
+        // watchdog: sockets that open but never finish setup must not hang CONNECTING.
+        // 30s is generous — even on slow networks a working setup usually completes in <8s.
         Thread {
-            Thread.sleep(20_000)
+            Thread.sleep(30_000)
             if (active && phase == VoicePhase.CONNECTING) {
                 active = false
                 phase = VoicePhase.FAILED
@@ -179,6 +184,12 @@ class LiveVoice(
                                 })
                             })
                         })
+                        // No thinking — the model defaults to ~10-13s of "thoughts"
+                        // before the first audio chunk, which feels broken to the
+                        // user. The model still speaks thoughtfully without it.
+                        put("thinking_config", buildJsonObject {
+                            put("thinking_budget", 0)
+                        })
                     })
                     put("system_instruction", buildJsonObject {
                         put("parts", kotlinx.serialization.json.JsonArray(listOf(buildJsonObject {
@@ -189,6 +200,7 @@ class LiveVoice(
                     put("input_audio_transcription", buildJsonObject { })
                 })
             }.toString())
+            Log.d(TAG, "dialog ws open, setup sent")
         }
 
         override fun onMessage(ws: WebSocket, text: String) {
@@ -198,6 +210,7 @@ class LiveVoice(
             }.getOrNull() ?: return
 
             if ("setupComplete" in root) {
+                Log.d(TAG, "dialog setupComplete")
                 if (phase == VoicePhase.CONNECTING) phase = VoicePhase.LISTENING
                 startRecording(ws)
             }
@@ -207,7 +220,10 @@ class LiveVoice(
             sc["modelTurn"]?.jsonObject?.get("parts")?.jsonArray?.forEach { part ->
                 val data = part.jsonObject["inlineData"]?.jsonObject?.get("data")?.jsonPrimitive?.contentOrNull
                 if (data != null) {
-                    if (phase != VoicePhase.SPEAKING) phase = VoicePhase.SPEAKING
+                    if (phase != VoicePhase.SPEAKING) {
+                        Log.d(TAG, "first model audio chunk: ${data.length} b64 chars")
+                        phase = VoicePhase.SPEAKING
+                    }
                     val pcm = Base64.decode(data, Base64.NO_WRAP)
                     pcmQueue.offer(pcm)
                     if (trackPaused) resumeTrack()
@@ -356,7 +372,7 @@ class LiveVoice(
 
     private fun buildTrack(): AudioTrack {
         val minBuf = AudioTrack.getMinBufferSize(SAMPLE_OUT, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT)
-        return AudioTrack.Builder()
+        val track = AudioTrack.Builder()
             .setAudioAttributes(
                 AudioAttributes.Builder()
                     .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
@@ -371,8 +387,16 @@ class LiveVoice(
                     .build()
             )
             .setTransferMode(AudioTrack.MODE_STREAM)
-            .setBufferSizeInBytes(maxOf(minBuf, SAMPLE_OUT * 2))
+            // 4-second buffer — gives the speaker time to drain even when the
+            // model spits chunks faster than 1× realtime.
+            .setBufferSizeInBytes(maxOf(minBuf, SAMPLE_OUT * 2 * 4))
             .build()
+        // Force max volume on the track itself. The system stream volume can
+        // be 0 from a previous session (e.g. user muted music); this guarantees
+        // we are audible without us fiddling with the user's volume setting.
+        runCatching { track.setVolume(AudioTrack.getMaxVolume()) }
+        Log.d(TAG, "AudioTrack built: ${SAMPLE_OUT}Hz mono, max volume")
+        return track
     }
 
     private fun resumeTrack() {
@@ -411,16 +435,47 @@ class LiveVoice(
             savedSpeaker = audioManager.isSpeakerphoneOn
             audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
             audioManager.isSpeakerphoneOn = true
+            // explicit audio focus (the AudioTrack on USAGE_VOICE_COMMUNICATION
+            // usually gets it automatically, but on some OEM builds the system
+            // mutes the stream unless we ask nicely)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val fr = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
+                    .setAudioAttributes(
+                        android.media.AudioAttributes.Builder()
+                            .setUsage(android.media.AudioAttributes.USAGE_VOICE_COMMUNICATION)
+                            .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SPEECH)
+                            .build()
+                    )
+                    .setOnAudioFocusChangeListener { }
+                    .build()
+                focusRequest = fr
+                audioManager.requestAudioFocus(fr)
+            } else {
+                @Suppress("DEPRECATION")
+                audioManager.requestAudioFocus(
+                    null,
+                    AudioManager.STREAM_VOICE_CALL,
+                    AudioManager.AUDIOFOCUS_GAIN_TRANSIENT,
+                )
+            }
             audioSessionSet = true
-        }
+            Log.d(TAG, "audio session: mode=COMM, speaker=true, focus=requested")
+        }.onFailure { Log.w(TAG, "configureAudioSession failed", it) }
     }
 
     private fun restoreAudioSession() {
         if (!audioSessionSet) return
         runCatching {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                focusRequest?.let { audioManager.abandonAudioFocusRequest(it) }
+            } else {
+                @Suppress("DEPRECATION")
+                audioManager.abandonAudioFocus(null)
+            }
+            focusRequest = null
             audioManager.isSpeakerphoneOn = savedSpeaker
             audioManager.mode = savedMode
-        }
+        }.onFailure { Log.w(TAG, "restoreAudioSession failed", it) }
         audioSessionSet = false
     }
 
@@ -444,5 +499,6 @@ class LiveVoice(
         const val SAMPLE_IN = 16000
         const val SAMPLE_OUT = 24000
         const val FRAME_IN = 1280
+        private const val TAG = "Beam"
     }
 }

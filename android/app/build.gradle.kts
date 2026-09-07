@@ -13,8 +13,8 @@ android {
         applicationId = "com.beammental.app"
         minSdk = 24
         targetSdk = 35
-        versionCode = 15
-        versionName = "1.9.0"
+        versionCode = 16
+        versionName = "1.10.0"
         // Backend URL can be overridden by CI via BEAM_SERVER_URL env var.
         // vars.BEAM_SERVER_URL in Actions resolves to "" when unset, which
         // counts as a present env var — fall back to prod when blank.

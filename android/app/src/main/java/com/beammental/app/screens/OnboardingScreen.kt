@@ -183,7 +183,7 @@ fun OnboardingScreen(onDone: () -> Unit) {
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     when (s) {
-                        0 -> StepShell("Vitaj v Beame.", "Krátke zoznámenie — pár otázok a všetko prispôsobíme tebe. Zaberie to asi dve minúty.\n\nAko ťa máme osloviť?") {
+                        0 -> StepShell("Ahoj.", "Teší nás. Pár otázok a Beam si prispôsobíme tebe — tvojmu dňu, tvojmu tempu, tvojmu svetu. Trvá to dve minúty.\n\nAko ti máme hovoriť?") {
                             StaggerIn(0) {
                                 OutlinedTextField(
                                     value = name, onValueChange = { name = it },
@@ -197,12 +197,12 @@ fun OnboardingScreen(onDone: () -> Unit) {
                             Spacer(Modifier.height(10.dp))
                             StaggerIn(1) {
                                 Text(
-                                    "Stačí meno alebo prezývka — nič viac od teba nechceme.",
+                                    "Stačí meno alebo prezývka. To je všetko, čo teraz potrebujeme.",
                                     color = BeamColors.Fog, fontSize = 13.sp, textAlign = TextAlign.Center,
                                 )
                             }
                         }
-                        1 -> StepShell("Ako sa dnes cítiš?", "Vyber stav, ktorý je ti teraz najbližší. Bez hodnotenia — aj ťažké dni sa počítajú.") {
+                        1 -> StepShell("Ako sa dnes máš?", "Bez filtrov a bez toho, aby si niečo hral/a. Aj ťažké dni sa počítajú.") {
                             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                 MOODS.chunked(2).forEachIndexed { row, pair ->
                                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -216,10 +216,10 @@ fun OnboardingScreen(onDone: () -> Unit) {
                                 }
                             }
                         }
-                        2 -> StepShell("Čo ťa teraz najviac zaťažuje?", "Môžeš vybrať viac oblastí. Čím presnejšie ich pomenúš, tým lepšie ti vieme porozumieť.") {
+                        2 -> StepShell("Čo ťa v poslednej dobe ťaží?", "Môže to byť práca, vzťahy, niečo vnútri — alebo úplne obyčajná vec. Môžeš vybrať aj viac oblastí. Čím úprimnejšie, tým lepšie ti Beam porozumie.") {
                             ChipFlow(STRESSORS, stressors) { stressors = it }
                         }
-                        3 -> StepShell("S čím ti má Beam pomáhať?", "Vyber, na čom chceš pracovať. Priority môžeš neskôr kedykoľvek zmeniť.") {
+                        3 -> StepShell("S čím ti môžem pomôcť?", "Vyber, na čom ti záleží. Prioritu môžeš kedykoľvek zmeniť v nastaveniach — aj o polrok.") {
                             ChipFlow(GOALS, goals) { goals = it }
                         }
                         4 -> StepShell("Ako vyzerá tvoj spánok?", "Spánok prezradí o rozpoložení často viac než nálada. Ako to bolo posledné dni?") {
