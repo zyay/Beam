@@ -47,6 +47,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.beammental.app.data.Api
@@ -54,8 +55,8 @@ import com.beammental.app.data.ChatMessage
 import com.beammental.app.data.Locator
 import com.beammental.app.data.UpdateUi
 import com.beammental.app.data.Updater
-import com.beammental.app.ui.effects.ChatBackground
 import com.beammental.app.ui.effects.MascotBlob
+import com.beammental.app.ui.effects.MeshBackground
 import com.beammental.app.ui.theme.BeamColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -176,50 +177,69 @@ fun ChatScreen(onSettings: () -> Unit) {
     }
 
     Box(Modifier.fillMaxSize().background(BeamColors.Ink)) {
-        ChatBackground(
+        MeshBackground(
             modifier = Modifier.matchParentSize(),
-            intensity = if (busy || input.isNotBlank()) 1f else 0f,
+            intensity = if (busy || streaming || input.isNotBlank()) 1f else 0f,
         )
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding()) {
-        // header
+        // header — translucent glass bar
         Row(
-            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+            Modifier
+                .fillMaxWidth()
+                .background(BeamColors.Ink.copy(alpha = 0.55f))
+                .padding(horizontal = 18.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             MascotBlob(
-                modifier = Modifier.size(28.dp), blobSize = 28.dp,
+                modifier = Modifier.size(32.dp), blobSize = 32.dp,
                 animation = when {
                     busy -> "thinking"
                     input.isNotBlank() -> "listening"
                     else -> "idle"
                 },
             )
-            Spacer(Modifier.width(8.dp))
-            Text("Beam", fontWeight = FontWeight.SemiBold, color = BeamColors.Mist)
-            Text(" · $display", color = BeamColors.Fog, fontSize = 14.sp)
+            Spacer(Modifier.width(10.dp))
+            Column {
+                Text(
+                    "Beam",
+                    fontWeight = FontWeight.SemiBold,
+                    color = BeamColors.Mist,
+                    fontSize = 15.sp,
+                    letterSpacing = (-0.2).sp,
+                )
+                Text(
+                    display,
+                    color = BeamColors.Fog,
+                    fontSize = 11.sp,
+                    lineHeight = 14.sp,
+                )
+            }
             Spacer(Modifier.weight(1f))
-            Icon(
-                Icons.Rounded.Mic, "Hlasový režim",
-                tint = BeamColors.Sage,
-                modifier = Modifier.size(22.dp).clickable { voiceOpen = true },
+            HeaderIcon(
+                icon = { Icon(Icons.Rounded.Mic, "Hlasový režim", tint = BeamColors.Sage, modifier = Modifier.size(20.dp)) },
+                onClick = { voiceOpen = true },
             )
-            Spacer(Modifier.width(14.dp))
-            Icon(
-                Icons.Outlined.Add, "Nový rozhovor",
-                tint = BeamColors.Fog,
-                modifier = Modifier.size(22.dp).clickable(enabled = !busy) {
+            Spacer(Modifier.width(8.dp))
+            HeaderIcon(
+                icon = { Icon(Icons.Outlined.Add, "Nový rozhovor", tint = BeamColors.Fog, modifier = Modifier.size(20.dp)) },
+                onClick = {
+                    if (busy) return@HeaderIcon
                     messages = emptyList(); error = null
                     scope.launch { persist() }
                 },
             )
-            Spacer(Modifier.width(14.dp))
-            Icon(
-                Icons.Outlined.Settings, "Nastavenia",
-                tint = BeamColors.Fog,
-                modifier = Modifier.size(22.dp).clickable(onClick = onSettings),
+            Spacer(Modifier.width(8.dp))
+            HeaderIcon(
+                icon = { Icon(Icons.Outlined.Settings, "Nastavenia", tint = BeamColors.Fog, modifier = Modifier.size(20.dp)) },
+                onClick = onSettings,
             )
         }
-        HorizontalDivider(color = BeamColors.Line, thickness = 1.dp)
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(BeamColors.Line.copy(alpha = 0.5f)),
+        )
 
         if (updateUi !is UpdateUi.None && !bannerDismissed) {
             UpdateBanner(
@@ -236,51 +256,74 @@ fun ChatScreen(onSettings: () -> Unit) {
             if (messages.isEmpty() && !busy) {
                 var greeted by remember { mutableStateOf(true) }
                 LaunchedEffect(Unit) {
-                    delay(2600)
+                    delay(2400)
                     greeted = false
                 }
                 val appear = remember { Animatable(0f) }
                 LaunchedEffect(Unit) {
-                    appear.animateTo(1f, spring(dampingRatio = 0.6f, stiffness = 190f))
+                    appear.animateTo(1f, spring(dampingRatio = 0.72f, stiffness = 180f))
                 }
                 Column(
-                    Modifier.fillMaxSize().padding(24.dp),
+                    Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 28.dp, vertical = 32.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
                 ) {
                     MascotBlob(
                         modifier = Modifier
-                            .size(96.dp)
+                            .size(120.dp)
                             .graphicsLayer {
                                 scaleX = appear.value
                                 scaleY = appear.value
                                 alpha = appear.value
                             },
-                        blobSize = 96.dp,
+                        blobSize = 120.dp,
                         animation = if (greeted) "happy" else "idle",
                     )
-                    Spacer(Modifier.height(16.dp))
-                    Text("Ahoj, $display.", color = BeamColors.Mist, fontWeight = FontWeight.Medium, fontSize = 17.sp)
-                    Spacer(Modifier.height(6.dp))
+                    Spacer(Modifier.height(24.dp))
+                    Text(
+                        "Ahoj, $display.",
+                        color = BeamColors.Mist,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 24.sp,
+                        letterSpacing = (-0.4).sp,
+                    )
+                    Spacer(Modifier.height(8.dp))
                     Text(
                         "Som Beam — tvoje kľudné miesto na rozhovor.\nČo ťa dnes trápi, alebo čo ťa teší?",
-                        color = BeamColors.Fog, fontSize = 14.sp,
-                        lineHeight = 20.sp,
+                        color = BeamColors.Fog,
+                        fontSize = 14.sp,
+                        lineHeight = 21.sp,
+                        textAlign = TextAlign.Center,
                     )
-                    Spacer(Modifier.height(30.dp))
+                    Spacer(Modifier.height(34.dp))
                     listOf(
                         "Dnes mám ťažký deň",
                         "Neviem, čo cítim",
                         "Chcem sa podeliť o radosť",
                     ).forEach { hint ->
+                        val chipInteraction = remember { MutableInteractionSource() }
+                        val chipPressed by chipInteraction.collectIsPressedAsState()
+                        val chipScale by animateFloatAsState(
+                            if (chipPressed) 0.96f else 1f,
+                            spring(dampingRatio = 0.55f, stiffness = 380f),
+                            label = "chipScale",
+                        )
                         Text(
                             hint,
-                            color = BeamColors.Fog, fontSize = 14.sp,
+                            color = BeamColors.Mist,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
                             modifier = Modifier
-                                .background(BeamColors.Card, RoundedCornerShape(999.dp))
-                                .border(1.dp, BeamColors.Line, RoundedCornerShape(999.dp))
-                                .clickable { input = hint }
-                                .padding(horizontal = 18.dp, vertical = 11.dp),
+                                .graphicsLayer {
+                                    scaleX = chipScale
+                                    scaleY = chipScale
+                                }
+                                .background(BeamColors.Card.copy(alpha = 0.7f), RoundedCornerShape(999.dp))
+                                .border(1.dp, BeamColors.Line.copy(alpha = 0.6f), RoundedCornerShape(999.dp))
+                                .clickable(interactionSource = chipInteraction, indication = null) { input = hint }
+                                .padding(horizontal = 20.dp, vertical = 12.dp),
                         )
                         Spacer(Modifier.height(10.dp))
                     }
@@ -302,24 +345,24 @@ fun ChatScreen(onSettings: () -> Unit) {
                         ) {
                             Text(
                                 text,
-                                color = BeamColors.Mist,
+                                color = BeamColors.SageInk,
                                 fontSize = 15.sp,
                                 lineHeight = 22.sp,
                                 modifier = Modifier
-                                    .fillMaxWidth(0.86f)
+                                    .fillMaxWidth(0.84f)
                                     .background(
                                         Brush.verticalGradient(
                                             listOf(
-                                                BeamColors.Sage.copy(alpha = 0.20f),
-                                                BeamColors.Sage.copy(alpha = 0.12f),
+                                                BeamColors.Sage,
+                                                BeamColors.Sage.copy(alpha = 0.92f),
                                             ),
                                         ),
-                                        RoundedCornerShape(20.dp, 20.dp, 6.dp, 20.dp),
-                                    )
-                                    .border(
-                                        1.dp,
-                                        BeamColors.Sage.copy(alpha = 0.30f),
-                                        RoundedCornerShape(20.dp, 20.dp, 6.dp, 20.dp),
+                                        RoundedCornerShape(
+                                            topStart = 18.dp,
+                                            topEnd = 18.dp,
+                                            bottomStart = 18.dp,
+                                            bottomEnd = 5.dp,
+                                        ),
                                     )
                                     .padding(horizontal = 14.dp, vertical = 11.dp),
                             )
@@ -334,22 +377,23 @@ fun ChatScreen(onSettings: () -> Unit) {
                             ) {
                                 Box(
                                     Modifier
-                                        .padding(top = 4.dp, end = 9.dp)
-                                        .size(8.dp)
+                                        .padding(top = 9.dp, end = 9.dp)
+                                        .size(6.dp)
                                         .background(BeamColors.Sage, CircleShape),
                                 )
-                                Column(Modifier.fillMaxWidth(0.9f)) {
+                                Column(Modifier.fillMaxWidth(0.92f)) {
                                     Text(
                                         text,
                                         color = BeamColors.Mist,
                                         fontSize = 15.sp,
-                                        lineHeight = 22.sp,
+                                        lineHeight = 23.sp,
+                                        letterSpacing = 0.1.sp,
                                     )
                                     if (showCaret) {
                                         Box(
                                             Modifier
-                                                .padding(top = 2.dp)
-                                                .size(width = 8.dp, height = 16.dp)
+                                                .padding(top = 3.dp)
+                                                .size(width = 7.dp, height = 16.dp)
                                                 .alpha(caretAlpha)
                                                 .background(BeamColors.Sage),
                                         )
@@ -426,60 +470,70 @@ fun ChatScreen(onSettings: () -> Unit) {
             }
         }
 
-        // composer
-        Row(
+        // composer — glass bar floating above the keyboard
+        Box(
             Modifier
                 .fillMaxWidth()
                 .background(
-                    Brush.verticalGradient(listOf(Color.Transparent, BeamColors.Ink)),
+                    Brush.verticalGradient(
+                        listOf(
+                            BeamColors.Ink.copy(alpha = 0f),
+                            BeamColors.Ink.copy(alpha = 0.7f),
+                            BeamColors.Ink.copy(alpha = 0.85f),
+                        ),
+                    ),
                 )
-                .padding(horizontal = 14.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.Bottom,
+                .padding(horizontal = 12.dp, vertical = 10.dp),
         ) {
-            OutlinedTextField(
-                value = input,
-                onValueChange = { input = it },
-                placeholder = { Text("Čo máš na srdci?", color = BeamColors.Fog) },
-                shape = RoundedCornerShape(22.dp),
-                maxLines = 4,
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Text,
-                    imeAction = ImeAction.Send,
-                ),
-                keyboardActions = KeyboardActions(onSend = { send() }),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = BeamColors.Sage,
-                    unfocusedBorderColor = BeamColors.Line,
-                    focusedContainerColor = BeamColors.Ink2,
-                    unfocusedContainerColor = BeamColors.Ink2,
-                    cursorColor = BeamColors.Sage,
-                ),
-                modifier = Modifier.weight(1f),
-            )
-            Spacer(Modifier.width(8.dp))
-            val enabled = !busy && input.isNotBlank()
-            val interaction = remember { MutableInteractionSource() }
-            val pressed by interaction.collectIsPressedAsState()
-            val sendScale by animateFloatAsState(
-                if (pressed) 0.90f else 1f,
-                spring(dampingRatio = 0.55f),
-            )
-            Box(
-                Modifier
-                    .size(48.dp)
-                    .alpha(if (enabled) 1f else 0.5f)
-                    .graphicsLayer {
-                        scaleX = sendScale
-                        scaleY = sendScale
-                    }
-                    .background(
-                        BeamColors.Sage,
-                        CircleShape,
+            Row(verticalAlignment = Alignment.Bottom) {
+                OutlinedTextField(
+                    value = input,
+                    onValueChange = { input = it },
+                    placeholder = { Text("Čo máš na srdci?", color = BeamColors.Fog.copy(alpha = 0.85f)) },
+                    shape = RoundedCornerShape(24.dp),
+                    maxLines = 4,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Text,
+                        imeAction = ImeAction.Send,
+                    ),
+                    keyboardActions = KeyboardActions(onSend = { send() }),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = BeamColors.Sage.copy(alpha = 0.7f),
+                        unfocusedBorderColor = BeamColors.Line.copy(alpha = 0.6f),
+                        focusedContainerColor = BeamColors.Ink2.copy(alpha = 0.7f),
+                        unfocusedContainerColor = BeamColors.Ink2.copy(alpha = 0.7f),
+                        cursorColor = BeamColors.Sage,
+                    ),
+                    modifier = Modifier.weight(1f),
+                )
+                Spacer(Modifier.width(8.dp))
+                val enabled = !busy && input.isNotBlank()
+                val interaction = remember { MutableInteractionSource() }
+                val pressed by interaction.collectIsPressedAsState()
+                val sendScale by animateFloatAsState(
+                    if (pressed) 0.88f else 1f,
+                    spring(dampingRatio = 0.5f, stiffness = 380f),
+                    label = "sendScale",
+                )
+                Box(
+                    Modifier
+                        .size(46.dp)
+                        .alpha(if (enabled) 1f else 0.45f)
+                        .graphicsLayer {
+                            scaleX = sendScale
+                            scaleY = sendScale
+                        }
+                        .background(BeamColors.Sage, CircleShape)
+                        .clickable(interactionSource = interaction, indication = null, enabled = enabled) { send() },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Rounded.Send,
+                        "Poslať",
+                        tint = BeamColors.SageInk,
+                        modifier = Modifier.size(19.dp),
                     )
-                    .clickable(interactionSource = interaction, indication = null, enabled = enabled) { send() },
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(Icons.AutoMirrored.Rounded.Send, "Poslať", tint = BeamColors.SageInk, modifier = Modifier.size(20.dp))
+                }
             }
         }
         }
@@ -487,6 +541,34 @@ fun ChatScreen(onSettings: () -> Unit) {
         if (voiceOpen) {
             VoiceScreen(onClose = { voiceOpen = false })
         }
+    }
+}
+
+@Composable
+private fun HeaderIcon(
+    icon: @Composable () -> Unit,
+    onClick: () -> Unit,
+) {
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        if (pressed) 0.85f else 1f,
+        spring(dampingRatio = 0.55f, stiffness = 400f),
+        label = "headerIconScale",
+    )
+    Box(
+        Modifier
+            .size(36.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .background(BeamColors.Card.copy(alpha = 0.5f), CircleShape)
+            .border(1.dp, BeamColors.Line.copy(alpha = 0.6f), CircleShape)
+            .clickable(interactionSource = interaction, indication = null, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        icon()
     }
 }
 

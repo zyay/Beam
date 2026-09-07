@@ -32,7 +32,7 @@ import com.beammental.app.data.Locator
 import com.beammental.app.data.Updater
 import com.beammental.app.data.UpdateUi
 import com.beammental.app.ui.effects.MascotBlob
-import com.beammental.app.ui.effects.WaveBackground
+import com.beammental.app.ui.effects.MeshBackground
 import com.beammental.app.ui.theme.BEAM_THEMES
 import com.beammental.app.ui.theme.BeamColors
 import kotlinx.coroutines.launch
@@ -48,7 +48,7 @@ fun SettingsScreen(onBack: () -> Unit, onLoggedOut: () -> Unit) {
     LaunchedEffect(Unit) { name = Locator.session.name().orEmpty() }
 
     Box(Modifier.fillMaxSize().background(BeamColors.Ink)) {
-        WaveBackground(Modifier.matchParentSize())
+        MeshBackground(Modifier.matchParentSize(), intensity = 0.7f)
         Column(
             Modifier
                 .fillMaxSize()

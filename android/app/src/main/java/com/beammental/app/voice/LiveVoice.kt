@@ -118,7 +118,9 @@ class LiveVoice(
             "Aktívne počúvaš, validuješ pocity a opatrne sa pýtaš jednu dopĺňujúcu otázku. " +
             "Nikdy nediagnostikuješ a nedávaš lekárske rady. " +
             "Ak človek zaznie niečo veľmi vážne — smútok, sebapoškodenie, myšlienky na smrť — spomenieš s láskou Linku krízy 0800 900 900, " +
-            "IPčko 0800 500 500 a povzbudíš ho osloviť blízkeho človeka. Tichá chvíľa je v poriadku, neniekaj sa."
+            "IPčko 0800 500 500 a povzbudíš ho osloviť blízkeho človeka. Tichá chvíľa je v poriadku, neniekaj sa.\n\n" +
+            "Keď sa hovor práve pripojil, vždy pozdrav prvá — srdečne, ale stručne. Napríklad: " +
+            "„Ahoj, som Beam. Rád ťa počujem. Ako sa dnes máš?“"
 
     fun start() {
         if (active) return
@@ -288,6 +290,10 @@ class LiveVoice(
                 Log.d(TAG, "dialog setupComplete")
                 setupCompleted = true
                 if (phase == VoicePhase.CONNECTING) phase = VoicePhase.LISTENING
+                // Make Beam speak first — prompt a short user turn so the model
+                // opens with a warm Slovak greeting instead of waiting in silence
+                // for the user to find their voice.
+                triggerGreeting(ws)
                 startRecording(ws)
             }
             lastWsTrafficAt = System.currentTimeMillis()
@@ -391,6 +397,24 @@ class LiveVoice(
             stop()
             onCrisis()
         }
+    }
+
+    // ---------- greeting trigger ----------
+
+    /** After setup, push a tiny user "Ahoj" turn so the model opens the call
+     *  with its greeting instead of waiting in silence. The system instruction
+     *  is what makes the greeting warm and Slovak. */
+    private fun triggerGreeting(dialog: WebSocket) {
+        val payload = "{" +
+            "\"client_content\":{" +
+            "\"turns\":[{\"role\":\"user\",\"parts\":[{\"text\":\"Ahoj\"}]}]," +
+            "\"turn_complete\":true" +
+            "}}"
+        runCatching {
+            val ok = dialog.send(payload)
+            if (ok) lastWsTrafficAt = System.currentTimeMillis()
+            Log.d(TAG, "greeting triggered")
+        }.onFailure { Log.w(TAG, "triggerGreeting failed", it) }
     }
 
     // ---------- audio in (16 kHz mono PCM -> base64 to both sessions) ----------

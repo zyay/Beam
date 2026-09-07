@@ -36,6 +36,26 @@ class Api(private val session: Session) {
         .readTimeout(70, TimeUnit.SECONDS)
         .build()
 
+    /** Retries transient failures (no connection / 502 / 504 / 408 / 429)
+     *  with exponential backoff: 400ms → 1100ms → 2700ms. The first attempt
+     *  that returns a non-retryable result wins. Streaming has its own
+     *  partial-text recovery so we don't wrap it here. */
+    private suspend fun <T> withRetry(
+        maxAttempts: Int = 3,
+        block: suspend () -> Pair<Boolean, T?>,
+    ): T? {
+        var attempt = 0
+        var delayMs = 400L
+        while (true) {
+            attempt++
+            val (retryable, value) = runCatching { block() }.getOrElse { true to null }
+            if (value != null || !retryable) return value
+            if (attempt >= maxAttempts) return block().second
+            kotlinx.coroutines.delay(delayMs)
+            delayMs = (delayMs * 2.5f).toLong().coerceAtMost(3500L)
+        }
+    }
+
     private suspend fun post(path: String, body: JsonObject, authed: Boolean = false): Pair<Int, JsonObject?> =
         withContext(Dispatchers.IO) {
             runCatching {
@@ -166,18 +186,25 @@ class Api(private val session: Session) {
                 } }
             ))
         }
-        val (code, obj) = post("api/chat", body, authed = true)
-        if (code == 200 && obj != null) {
-            val text = obj["text"]?.jsonPrimitive?.contentOrNull
-            val crisis = obj["crisis"]?.jsonPrimitive?.booleanOrNull == true
-            return ChatResult(text, crisis, null)
+        val result = withRetry<ChatResult> {
+            val (code, obj) = post("api/chat", body, authed = true)
+            if (code == 200 && obj != null) {
+                val text = obj["text"]?.jsonPrimitive?.contentOrNull
+                val crisis = obj["crisis"]?.jsonPrimitive?.booleanOrNull == true
+                false to ChatResult(text, crisis, null)
+            } else {
+                val retryable = code == 0 || code == 502 || code == 504 || code == 408 || code == 429
+                val err = obj.err() ?: when (code) {
+                    0 -> "Nepodarilo sa pripojiť k serveru. Skús to o chvíľu."
+                    401, 403 -> "Prihlásenie vypršalo. Skús sa prihlásiť znova."
+                    408, 429 -> "Príliš veľa pokusov. Chvíľu počkaj."
+                    500, 502, 503, 504 -> "Server je dočasne nedostupný. Skús to o chvíľu."
+                    else -> "Server neodpovedá ($code)."
+                }
+                retryable to ChatResult(null, false, err)
+            }
         }
-        val err = obj.err() ?: when (code) {
-            0 -> "Nepodarilo sa pripojiť k serveru. Skús to o chvíľu."
-            502, 504 -> "Chat služba je preťažená. Skús to o chvíľu."
-            else -> "Server neodpovedá ($code)."
-        }
-        return ChatResult(null, false, err)
+        return result ?: ChatResult(null, false, "Server neodpovedá. Skús to o chvíľu.")
     }
 
     /** Streaming chat: SSE deltas via [onDelta] (called on IO thread).

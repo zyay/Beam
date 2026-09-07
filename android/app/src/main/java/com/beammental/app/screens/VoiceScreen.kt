@@ -47,7 +47,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.beammental.app.BuildConfig
 import com.beammental.app.ui.effects.MascotBlob
-import com.beammental.app.ui.effects.WaveBackground
+import com.beammental.app.ui.effects.MeshBackground
 import com.beammental.app.ui.theme.BeamColors
 import com.beammental.app.voice.LiveVoice
 import com.beammental.app.voice.OutputMode
@@ -108,7 +108,16 @@ fun VoiceScreen(onClose: () -> Unit) {
     }
 
     Box(Modifier.fillMaxSize().background(BeamColors.Ink)) {
-        WaveBackground(Modifier.matchParentSize())
+        val phase = v?.phase
+        MeshBackground(
+            modifier = Modifier.matchParentSize(),
+            intensity = when (phase) {
+                com.beammental.app.voice.VoicePhase.SPEAKING -> 1f
+                com.beammental.app.voice.VoicePhase.LISTENING -> 0.85f
+                com.beammental.app.voice.VoicePhase.CONNECTING -> 0.7f
+                else -> 0.5f
+            },
+        )
         Column(
             Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(horizontal = 20.dp)
         ) {

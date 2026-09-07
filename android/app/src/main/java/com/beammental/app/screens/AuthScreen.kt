@@ -42,9 +42,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.beammental.app.data.Locator
-import com.beammental.app.ui.effects.BlueprintGrid
 import com.beammental.app.ui.effects.MascotBlob
-import com.beammental.app.ui.effects.WaveBackground
+import com.beammental.app.ui.effects.MeshBackground
 import com.beammental.app.ui.theme.BeamColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -75,8 +74,7 @@ fun AuthScreen(onAuthed: (onboarded: Boolean) -> Unit) {
     }
 
     Box(Modifier.fillMaxSize().background(BeamColors.Ink)) {
-        WaveBackground(Modifier.matchParentSize())
-        BlueprintGrid(Modifier.matchParentSize())
+        MeshBackground(Modifier.matchParentSize(), intensity = if (busy) 1f else 0.6f)
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
             Box(Modifier.weight(1f).imePadding()) {
                 Column(

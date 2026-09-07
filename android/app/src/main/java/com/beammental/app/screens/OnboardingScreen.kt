@@ -46,7 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.beammental.app.data.Locator
 import com.beammental.app.ui.effects.MascotBlob
-import com.beammental.app.ui.effects.WaveBackground
+import com.beammental.app.ui.effects.MeshBackground
 import com.beammental.app.ui.theme.BeamColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -144,7 +144,7 @@ fun OnboardingScreen(onDone: () -> Unit) {
     )
 
     Box(Modifier.fillMaxSize().background(BeamColors.Ink)) {
-        WaveBackground(Modifier.matchParentSize())
+        MeshBackground(Modifier.matchParentSize(), intensity = 0.8f)
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding().padding(20.dp)) {
         Spacer(Modifier.height(10.dp))
         // progress beam
