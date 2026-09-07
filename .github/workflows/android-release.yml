@@ -24,7 +24,7 @@ jobs:
       # as an update over the previous one (different signature). The same
       # key signs every shipped release.
       - name: Restore release keystore
-        if: env.BEAM_KEYSTORE_BASE64 != ''
+        if: ${{ secrets.BEAM_KEYSTORE_BASE64 != '' }}
         env:
           BEAM_KEYSTORE_BASE64: ${{ secrets.BEAM_KEYSTORE_BASE64 }}
         run: |
@@ -32,7 +32,7 @@ jobs:
           echo "$BEAM_KEYSTORE_BASE64" | base64 -d > android/keystore/beam-release.jks
 
       - name: Write keystore.properties
-        if: env.BEAM_KEYSTORE_BASE64 != ''
+        if: ${{ secrets.BEAM_KEYSTORE_BASE64 != '' }}
         env:
           BEAM_KEYSTORE_PASSWORD: ${{ secrets.BEAM_KEYSTORE_PASSWORD }}
           BEAM_KEY_ALIAS: ${{ secrets.BEAM_KEY_ALIAS }}
@@ -60,7 +60,7 @@ jobs:
           cp android/app/build/outputs/apk/release/app-release.apk dist/Beam-${GITHUB_REF_NAME:-latest}.apk
 
       - name: Verify release signature
-        if: env.BEAM_KEYSTORE_BASE64 != ''
+        if: ${{ secrets.BEAM_KEYSTORE_BASE64 != '' }}
         run: |
           APKSIGNER="$ANDROID_HOME/build-tools/$(ls -1 $ANDROID_HOME/build-tools | sort -V | tail -1)/apksigner"
           $APKSIGNER verify --print-certs dist/*.apk | head -10
