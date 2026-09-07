@@ -25,7 +25,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Hearing
 import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.MicOff
 import androidx.compose.material3.Icon
@@ -48,6 +50,7 @@ import com.beammental.app.ui.effects.MascotBlob
 import com.beammental.app.ui.effects.WaveBackground
 import com.beammental.app.ui.theme.BeamColors
 import com.beammental.app.voice.LiveVoice
+import com.beammental.app.voice.OutputMode
 import com.beammental.app.voice.VoicePhase
 import kotlinx.coroutines.delay
 
@@ -69,12 +72,15 @@ fun VoiceScreen(onClose: () -> Unit) {
 
     val keyReady = BuildConfig.BEAM_GOOGLE_KEY.isNotBlank()
     var muted by remember { mutableStateOf(false) }
+    var outputMode by remember { mutableStateOf(OutputMode.SPEAKER) }
     var elapsedSec by remember { mutableIntStateOf(0) }
 
     fun startVoice() {
         muted = false
+        outputMode = OutputMode.SPEAKER
         val v = LiveVoice(context, BuildConfig.BEAM_GOOGLE_KEY) { crisisShown = true }
         voice = v
+        v.applyOutputMode()
         v.start()
     }
 
@@ -277,7 +283,7 @@ fun VoiceScreen(onClose: () -> Unit) {
                     Row(
                         Modifier.fillMaxWidth().padding(bottom = 12.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
                     ) {
                         val micInteraction = remember { MutableInteractionSource() }
                         val micPressed by micInteraction.collectIsPressedAsState()
@@ -298,7 +304,7 @@ fun VoiceScreen(onClose: () -> Unit) {
                                     muted = !muted
                                     v.muted = muted
                                 }
-                                .padding(horizontal = 22.dp, vertical = 11.dp),
+                                .padding(horizontal = 18.dp, vertical = 11.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Icon(
@@ -307,10 +313,39 @@ fun VoiceScreen(onClose: () -> Unit) {
                                 tint = if (muted) Color(0xFFFFC4CB) else BeamColors.Sage,
                                 modifier = Modifier.size(17.dp),
                             )
-                            Spacer(Modifier.width(9.dp))
+                            Spacer(Modifier.width(8.dp))
                             Text(
-                                if (muted) "Zapnúť mikrofón" else "Stlmiť mikrofón",
+                                if (muted) "Zapnúť" else "Stlmiť",
                                 color = if (muted) Color(0xFFFFC4CB) else BeamColors.Mist,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium,
+                            )
+                        }
+                        val outInteraction = remember { MutableInteractionSource() }
+                        val outPressed by outInteraction.collectIsPressedAsState()
+                        val outScale by animateFloatAsState(if (outPressed) 0.94f else 1f, spring(dampingRatio = 0.55f))
+                        Row(
+                            Modifier
+                                .graphicsLayer { scaleX = outScale; scaleY = outScale }
+                                .background(BeamColors.Card, RoundedCornerShape(999.dp))
+                                .border(1.dp, BeamColors.Line, RoundedCornerShape(999.dp))
+                                .clickable(interactionSource = outInteraction, indication = null) {
+                                    outputMode = if (outputMode == OutputMode.SPEAKER) OutputMode.EARPIECE else OutputMode.SPEAKER
+                                    v.applyOutputMode()
+                                }
+                                .padding(horizontal = 18.dp, vertical = 11.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                if (outputMode == OutputMode.SPEAKER) Icons.AutoMirrored.Rounded.VolumeUp else Icons.Rounded.Hearing,
+                                null,
+                                tint = BeamColors.Sage,
+                                modifier = Modifier.size(17.dp),
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                if (outputMode == OutputMode.SPEAKER) "Reproduktor" else "Slúchadlo",
+                                color = BeamColors.Mist,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Medium,
                             )

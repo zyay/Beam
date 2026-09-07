@@ -5,16 +5,37 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 
+import java.util.Properties
+
 android {
     namespace = "com.beammental.app"
     compileSdk = 35
+
+    // Load the release signing config from `keystore.properties` if present.
+    // When the file is absent (e.g. a fresh fork running a dev build), fall back
+    // to the auto-generated debug key — which is fine for local development but
+    // makes cross-version updates impossible because every build gets a fresh
+    // key. The CI workflow writes `keystore.properties` from secrets, so any
+    // release built by the pipeline uses the same persistent key.
+    val keystoreProps = Properties().apply {
+        val f = rootProject.file("keystore.properties")
+        if (f.exists()) load(f.inputStream())
+    }
+    if (keystoreProps.isNotEmpty()) {
+        signingConfigs.create("release") {
+            storeFile = rootProject.file(keystoreProps.getProperty("storeFile"))
+            storePassword = keystoreProps.getProperty("storePassword")
+            keyAlias = keystoreProps.getProperty("keyAlias")
+            keyPassword = keystoreProps.getProperty("keyPassword")
+        }
+    }
 
     defaultConfig {
         applicationId = "com.beammental.app"
         minSdk = 24
         targetSdk = 35
-        versionCode = 16
-        versionName = "1.10.0"
+        versionCode = 17
+        versionName = "1.11.0"
         // Backend URL can be overridden by CI via BEAM_SERVER_URL env var.
         // vars.BEAM_SERVER_URL in Actions resolves to "" when unset, which
         // counts as a present env var — fall back to prod when blank.
@@ -39,8 +60,15 @@ android {
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro")
-            // CI-friendly: installable without repo secrets.
-            signingConfig = signingConfigs.getByName("debug")
+            // Use the persistent release key when keystore.properties exists,
+            // otherwise fall back to the auto-generated debug key. CI always
+            // provides the properties file, so every shipped APK is signed
+            // with the same key and can update the previous one in place.
+            signingConfig = if (keystoreProps.isNotEmpty()) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 

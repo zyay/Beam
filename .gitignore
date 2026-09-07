@@ -45,3 +45,8 @@ next-env.d.ts
 .data/
 
 .vercel
+
+# android release signing — keystore + properties are local/CI-only, never committed
+/android/keystore/*.jks
+/android/keystore.properties
+/android/keystore/

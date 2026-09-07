@@ -19,6 +19,32 @@ jobs:
           distribution: temurin
           java-version: 21
 
+      # Restore the persistent release keystore. Without this every CI run
+      # gets a fresh debug key, and Android refuses to install the new APK
+      # as an update over the previous one (different signature). The same
+      # key signs every shipped release.
+      - name: Restore release keystore
+        if: env.BEAM_KEYSTORE_BASE64 != ''
+        env:
+          BEAM_KEYSTORE_BASE64: ${{ secrets.BEAM_KEYSTORE_BASE64 }}
+        run: |
+          mkdir -p android/keystore
+          echo "$BEAM_KEYSTORE_BASE64" | base64 -d > android/keystore/beam-release.jks
+
+      - name: Write keystore.properties
+        if: env.BEAM_KEYSTORE_BASE64 != ''
+        env:
+          BEAM_KEYSTORE_PASSWORD: ${{ secrets.BEAM_KEYSTORE_PASSWORD }}
+          BEAM_KEY_ALIAS: ${{ secrets.BEAM_KEY_ALIAS }}
+          BEAM_KEY_PASSWORD: ${{ secrets.BEAM_KEY_PASSWORD }}
+        run: |
+          cat > android/keystore.properties << EOF
+          storeFile=keystore/beam-release.jks
+          storePassword=${BEAM_KEYSTORE_PASSWORD}
+          keyAlias=${BEAM_KEY_ALIAS}
+          keyPassword=${BEAM_KEY_PASSWORD}
+          EOF
+
       - name: Build native release APK (Kotlin + Compose)
         run: |
           cd android
@@ -33,6 +59,12 @@ jobs:
           mkdir -p dist
           cp android/app/build/outputs/apk/release/app-release.apk dist/Beam-${GITHUB_REF_NAME:-latest}.apk
 
+      - name: Verify release signature
+        if: env.BEAM_KEYSTORE_BASE64 != ''
+        run: |
+          APKSIGNER="$ANDROID_HOME/build-tools/$(ls -1 $ANDROID_HOME/build-tools | sort -V | tail -1)/apksigner"
+          $APKSIGNER verify --print-certs dist/*.apk | head -10
+
       - name: Upload to GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
@@ -46,3 +78,10 @@ jobs:
         with:
           name: Beam-apk
           path: dist/*.apk
+
+      # Belt-and-braces — make sure no keystore ever leaks into an artifact.
+      - name: Strip signing material from runner
+        if: always()
+        run: |
+          rm -rf android/keystore android/keystore.properties || true
+          echo "keystore material removed"

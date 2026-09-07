@@ -39,6 +39,7 @@ import kotlin.math.min
 import kotlin.math.sqrt
 
 enum class VoicePhase { CONNECTING, LISTENING, SPEAKING, ENDED, FAILED }
+enum class OutputMode { SPEAKER, EARPIECE }
 
 /**
  * Live voice talk over the Gemini Live API:
@@ -70,6 +71,19 @@ class LiveVoice(
 
     /** Mic muted: the recorder keeps draining but nothing is sent upstream. */
     @Volatile var muted = false
+
+    /** Default = speakerphone so the user can hear Beam hands-free. Earpiece
+     *  is for when they want privacy (caller-style routing). Flip with
+     *  [setOutputMode] — safe to call mid-call. */
+    @Volatile var outputMode: OutputMode = OutputMode.SPEAKER
+
+    /** Last time we sent or received any WebSocket message, ms. Used to
+     *  decide whether to keep the dialog socket alive with a ping. */
+    @Volatile private var lastWsTrafficAt = 0L
+    /** Set once we've sent a single setupComplete — controls auto-retry. */
+    @Volatile private var setupCompleted = false
+    /** True if this session is being auto-retried after a transient failure. */
+    @Volatile private var isRetry = false
 
     private var userTextAt = 0L
     private var newModelTurn = false
@@ -110,6 +124,8 @@ class LiveVoice(
         if (active) return
         active = true
         phase = VoicePhase.CONNECTING
+        setupCompleted = false
+        lastWsTrafficAt = System.currentTimeMillis()
 
         configureAudioSession()
         acquireProximityWakeLock()
@@ -131,16 +147,75 @@ class LiveVoice(
             TranscribeListener(),
         )
 
-        // watchdog: sockets that open but never finish setup must not hang CONNECTING.
-        // 30s is generous — even on slow networks a working setup usually completes in <8s.
+        // 1 · setup watchdog: if the dialog socket opens but never completes
+        // setup, the call should not hang in CONNECTING forever. 30s is
+        // generous — a working setup usually completes in <8s.
         Thread {
             Thread.sleep(30_000)
             if (active && phase == VoicePhase.CONNECTING) {
-                active = false
-                phase = VoicePhase.FAILED
-                failure = "Nepodarilo sa pripojiť. Skús to znova."
-                runCatching { dialogWs?.cancel() }
-                runCatching { transcribeWs?.cancel() }
+                if (!setupCompleted && !isRetry) {
+                    // transient blip: tear down and try once more, in-place
+                    isRetry = true
+                    Log.w(TAG, "setup watchdog fired — auto-retrying dialog socket")
+                    runCatching { dialogWs?.cancel() }
+                    runCatching { transcribeWs?.cancel() }
+                    Thread.sleep(800)
+                    if (!active) return@Thread
+                    phase = VoicePhase.CONNECTING
+                    setupCompleted = false
+                    lastWsTrafficAt = System.currentTimeMillis()
+                    dialogWs = client.newWebSocket(
+                        Request.Builder().url(base).build(),
+                        DialogListener(),
+                    )
+                    transcribeWs = client.newWebSocket(
+                        Request.Builder().url(base).build(),
+                        TranscribeListener(),
+                    )
+                } else if (!setupCompleted) {
+                    // already retried, give up
+                    active = false
+                    phase = VoicePhase.FAILED
+                    failure = "Nepodarilo sa pripojiť. Skús to znova."
+                    runCatching { dialogWs?.cancel() }
+                    runCatching { transcribeWs?.cancel() }
+                }
+            }
+        }.apply { isDaemon = true }.start()
+
+        // 2 · keepalive: long pauses with no audio or transcript chunks let
+        // intermediate proxies / NATs kill the socket. Send a tiny empty
+        // audio chunk every 25s whenever nothing else has moved. We only do
+        // this before setup completes; once we're in LISTENING, the model
+        // is talking back and forth anyway, so the keepalive is implicit.
+        Thread {
+            while (active) {
+                Thread.sleep(5_000)
+                if (!active) break
+                val since = System.currentTimeMillis() - lastWsTrafficAt
+                if (since > 25_000 && setupCompleted) {
+                    val ws = dialogWs
+                    if (ws != null) {
+                        // 100 ms of digital silence — keeps the stream warm
+                        // without confusing the model.
+                        val silence = ShortArray(1600) // 100 ms @ 16 kHz
+                        val bytes = ByteArray(silence.size * 2)
+                        val b = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN)
+                        b.asShortBuffer().put(silence)
+                        val b64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
+                        val ok = ws.send(
+                            buildJsonObject {
+                                put("realtime_input", buildJsonObject {
+                                    put("media_chunks", kotlinx.serialization.json.JsonArray(listOf(buildJsonObject {
+                                        put("mime_type", "audio/pcm;rate=$SAMPLE_IN")
+                                        put("data", b64)
+                                    })))
+                                })
+                            }.toString()
+                        )
+                        if (ok) lastWsTrafficAt = System.currentTimeMillis()
+                    }
+                }
             }
         }.apply { isDaemon = true }.start()
     }
@@ -211,9 +286,11 @@ class LiveVoice(
 
             if ("setupComplete" in root) {
                 Log.d(TAG, "dialog setupComplete")
+                setupCompleted = true
                 if (phase == VoicePhase.CONNECTING) phase = VoicePhase.LISTENING
                 startRecording(ws)
             }
+            lastWsTrafficAt = System.currentTimeMillis()
 
             val sc = root["serverContent"]?.jsonObject ?: return
 
@@ -287,6 +364,7 @@ class LiveVoice(
 
         override fun onMessage(ws: WebSocket, text: String) {
             if (!active) return
+            lastWsTrafficAt = System.currentTimeMillis()
             val sc = runCatching {
                 json.parseToJsonElement(text).jsonObject["serverContent"]?.jsonObject
             }.getOrNull() ?: return
@@ -363,6 +441,7 @@ class LiveVoice(
                 }.toString()
                 dialog.send(payload)
                 transcribeWs?.send(payload)
+                lastWsTrafficAt = System.currentTimeMillis()
             }
             _level.value = 0f
         }.apply { start() }
@@ -477,6 +556,15 @@ class LiveVoice(
             audioManager.mode = savedMode
         }.onFailure { Log.w(TAG, "restoreAudioSession failed", it) }
         audioSessionSet = false
+    }
+
+    /** Flip between speakerphone and earpiece routing without tearing down the
+     *  call. Speaker = hands-free; Earpiece = private (caller-style). */
+    fun applyOutputMode() {
+        runCatching {
+            audioManager.isSpeakerphoneOn = (outputMode == OutputMode.SPEAKER)
+            Log.d(TAG, "output mode -> $outputMode (speakerphone=${audioManager.isSpeakerphoneOn})")
+        }.onFailure { Log.w(TAG, "applyOutputMode failed", it) }
     }
 
     private fun acquireProximityWakeLock() {

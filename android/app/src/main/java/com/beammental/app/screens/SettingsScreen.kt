@@ -22,12 +22,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.beammental.app.BuildConfig
 import com.beammental.app.data.Locator
+import com.beammental.app.data.Updater
+import com.beammental.app.data.UpdateUi
 import com.beammental.app.ui.effects.MascotBlob
 import com.beammental.app.ui.effects.WaveBackground
 import com.beammental.app.ui.theme.BEAM_THEMES
@@ -168,16 +171,8 @@ fun SettingsScreen(onBack: () -> Unit, onLoggedOut: () -> Unit) {
             }
         }
 
-        SectionLabel(Icons.Outlined.SystemUpdate, "Aplikácia")
-        Column(Modifier.fillMaxWidth().border(1.dp, BeamColors.Line, RoundedCornerShape(20.dp)).background(BeamColors.Card, RoundedCornerShape(20.dp))) {
-            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Outlined.SystemUpdate, null, tint = BeamColors.Fog, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(12.dp))
-                Text("Verzia", color = BeamColors.Mist, fontSize = 15.sp)
-                Spacer(Modifier.weight(1f))
-                Text("Beam ${BuildConfig.VERSION_NAME} · aktualizuje sa sama na Wi-Fi", color = BeamColors.Fog, fontSize = 12.sp)
-            }
-        }
+        SectionLabel(Icons.Outlined.SystemUpdate, "Aktualizácie")
+        UpdateCard(ctx = ctx)
 
         SectionLabel(Icons.Outlined.Call, "Krízové linky")
         Column(Modifier.fillMaxWidth().border(1.dp, BeamColors.Line, RoundedCornerShape(20.dp)).background(BeamColors.Card, RoundedCornerShape(20.dp))) {
@@ -260,4 +255,170 @@ private fun SectionLabel(icon: androidx.compose.ui.graphics.vector.ImageVector, 
         Text(text, color = BeamColors.Fog, fontSize = 13.sp, fontWeight = FontWeight.Medium)
     }
     Spacer(Modifier.height(0.dp))
+}
+
+/** Live "Aktualizácie" card. Subscribes to the Updater state flow, exposes
+ *  manual check + force-download-over-mobile, and tells the user clearly
+ *  when the new APK has a different signature (in which case the install
+ *  has to happen via uninstall + reinstall, not in-place). */
+@Composable
+private fun UpdateCard(ctx: android.content.Context) {
+    val state by Updater.state.collectAsState()
+    val s = state
+    val currentVer = "Beam ${BuildConfig.VERSION_NAME}"
+
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .border(1.dp, BeamColors.Line, RoundedCornerShape(20.dp))
+            .background(BeamColors.Card, RoundedCornerShape(20.dp))
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                Icons.Outlined.SystemUpdate, null,
+                tint = BeamColors.Fog, modifier = Modifier.size(16.dp),
+            )
+            Spacer(Modifier.width(12.dp))
+            Text("Nainštalovaná verzia", color = BeamColors.Mist, fontSize = 14.sp)
+            Spacer(Modifier.weight(1f))
+            Text(currentVer, color = BeamColors.Fog, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+        }
+        Spacer(Modifier.height(10.dp))
+        HorizontalDivider(color = BeamColors.Line, thickness = 1.dp)
+        Spacer(Modifier.height(12.dp))
+
+        when (s) {
+            is UpdateUi.None -> {
+                Text(
+                    "Kontrola nových verzií prebehne automaticky, keď si na Wi-Fi.",
+                    color = BeamColors.Fog, fontSize = 13.sp, lineHeight = 18.sp,
+                )
+                Spacer(Modifier.height(12.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    PillAction("Skontrolovať", BeamColors.Sage) {
+                        Updater.checkAndMaybeStart(ctx)
+                    }
+                    PillAction("Stiahnuť cez mobilné dáta", BeamColors.Sage.copy(alpha = 0.14f), BeamColors.Sage) {
+                        Updater.checkAndMaybeStart(ctx, allowMetered = true)
+                    }
+                }
+            }
+            is UpdateUi.Available -> {
+                Text(
+                    "K dispozícii je verzia ${s.info.versionName}.",
+                    color = BeamColors.Mist, fontSize = 14.sp, fontWeight = FontWeight.Medium,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "Stiahne sa sama na Wi-Fi — alebo môžeš hneď teraz.",
+                    color = BeamColors.Fog, fontSize = 13.sp,
+                )
+                Spacer(Modifier.height(12.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    PillAction("Stiahnuť", BeamColors.Sage) { Updater.startDownload(ctx, s.info) }
+                    PillAction("Hneď (mobilné dáta)", BeamColors.Sage.copy(alpha = 0.14f), BeamColors.Sage) {
+                        Updater.startDownload(ctx, s.info)
+                    }
+                }
+            }
+            is UpdateUi.WaitingWifi -> {
+                Text(
+                    "Verzia ${s.info.versionName} — čaká sa na Wi-Fi.",
+                    color = BeamColors.Mist, fontSize = 14.sp, fontWeight = FontWeight.Medium,
+                )
+                Spacer(Modifier.height(12.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    PillAction("Stiahnuť cez mobilné dáta", BeamColors.Sage) {
+                        Updater.startDownload(ctx, s.info)
+                    }
+                }
+            }
+            is UpdateUi.Downloading -> {
+                Text(
+                    "Sťahujem verziu ${s.info.versionName}…",
+                    color = BeamColors.Mist, fontSize = 14.sp, fontWeight = FontWeight.Medium,
+                )
+                Spacer(Modifier.height(8.dp))
+                LinearProgressIndicator(
+                    progress = { s.progress },
+                    color = BeamColors.Sage,
+                    trackColor = BeamColors.Line,
+                    modifier = Modifier.fillMaxWidth().height(4.dp),
+                )
+                Spacer(Modifier.height(4.dp))
+                Text("${(s.progress * 100).toInt()} %", color = BeamColors.Fog, fontSize = 12.sp)
+            }
+            is UpdateUi.Ready -> {
+                val mismatch = !s.canInstallOver
+                if (mismatch) {
+                    Text(
+                        "Verzia ${s.info.versionName} je stiahnutá.",
+                        color = BeamColors.Mist, fontSize = 14.sp, fontWeight = FontWeight.Medium,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "Túto verziu nemožno nainštalovať ako aktualizáciu — má iný podpis. Odinštaluj starú Beam a nainštaluj novú manuálne z GitHubu.",
+                        color = Color(0xFFFF9FB0), fontSize = 12.sp, lineHeight = 17.sp,
+                    )
+                } else {
+                    Text(
+                        "Verzia ${s.info.versionName} je pripravená.",
+                        color = BeamColors.Mist, fontSize = 14.sp, fontWeight = FontWeight.Medium,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "Klepni na Nainštalovať a potvrď v systéme.",
+                        color = BeamColors.Fog, fontSize = 13.sp,
+                    )
+                }
+                Spacer(Modifier.height(12.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    PillAction(
+                        if (mismatch) "Otvoriť na GitHube" else "Nainštalovať",
+                        BeamColors.Sage,
+                    ) {
+                        if (mismatch) Updater.openInBrowser(ctx, s.info) else Updater.install(ctx, s.file)
+                    }
+                    if (mismatch) {
+                        PillAction("Skúsiť nainštalovať", BeamColors.Sage.copy(alpha = 0.14f), BeamColors.Sage) {
+                            Updater.install(ctx, s.file)
+                        }
+                    }
+                }
+            }
+            is UpdateUi.Failed -> {
+                Text(
+                    "Sťahovanie verzie ${s.info.versionName} zlyhalo.",
+                    color = Color(0xFFFF9FB0), fontSize = 14.sp, fontWeight = FontWeight.Medium,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(s.reason, color = BeamColors.Fog, fontSize = 13.sp, lineHeight = 18.sp)
+                Spacer(Modifier.height(12.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    PillAction("Skúsiť znova", BeamColors.Sage) { Updater.startDownload(ctx, s.info) }
+                    PillAction("Otvoriť na GitHube", BeamColors.Sage.copy(alpha = 0.14f), BeamColors.Sage) {
+                        Updater.openInBrowser(ctx, s.info)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PillAction(
+    label: String,
+    bg: Color,
+    fg: Color = BeamColors.SageInk,
+    onClick: () -> Unit,
+) {
+    Box(
+        Modifier
+            .background(bg, RoundedCornerShape(999.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 9.dp),
+    ) {
+        Text(label, color = fg, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+    }
 }

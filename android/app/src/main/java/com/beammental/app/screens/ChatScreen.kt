@@ -29,11 +29,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.Phone
-import androidx.compose.material.icons.rounded.Send
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -52,12 +52,11 @@ import androidx.compose.ui.unit.sp
 import com.beammental.app.data.Api
 import com.beammental.app.data.ChatMessage
 import com.beammental.app.data.Locator
-import com.beammental.app.data.UpdateInfo
+import com.beammental.app.data.UpdateUi
 import com.beammental.app.data.Updater
+import com.beammental.app.ui.effects.ChatBackground
 import com.beammental.app.ui.effects.MascotBlob
-import com.beammental.app.ui.effects.WaveBackground
 import com.beammental.app.ui.theme.BeamColors
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -83,8 +82,8 @@ fun ChatScreen(onSettings: () -> Unit) {
     var error by remember { mutableStateOf<String?>(null) }
     var lastUser by remember { mutableStateOf<String?>(null) }
     var voiceOpen by remember { mutableStateOf(false) }
-    var updateUi by remember { mutableStateOf<UpdateUi>(UpdateUi.None) }
-    var updateJob by remember { mutableStateOf<Job?>(null) }
+    val updateUi by Updater.state.collectAsState()
+    var bannerDismissed by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
     val caretTransition = rememberInfiniteTransition(label = "caret")
     val caretAlpha by caretTransition.animateFloat(
@@ -94,49 +93,24 @@ fun ChatScreen(onSettings: () -> Unit) {
         label = "caret-alpha",
     )
 
-    fun startDownload(info: UpdateInfo) {
-        updateJob?.cancel()
-        updateUi = UpdateUi.Downloading(info, 0f)
-        updateJob = scope.launch {
-            val file = Updater.download(context, info) { p ->
-                val st = updateUi
-                if (st is UpdateUi.Downloading && st.info == info) {
-                    updateUi = UpdateUi.Downloading(info, p)
-                }
-            }
-            if (file != null) {
-                updateUi = UpdateUi.Ready(info, file)
-                Updater.notifyReady(context, info, file)
-            } else if (updateUi is UpdateUi.Downloading) {
-                updateUi = UpdateUi.Failed(info)
-            }
-        }
-    }
-
-    // auto-update: check the latest release, download over Wi-Fi, notify
+    // auto-update: check the latest release, download over Wi-Fi, notify.
+    // Updater owns its own scope now, so navigating away from chat does not
+    // cancel the in-flight download.
     LaunchedEffect(Unit) {
-        val info = Updater.checkLatest() ?: return@LaunchedEffect
         if (Build.VERSION.SDK_INT >= 33 && !Updater.notificationsEnabled(context)) {
             notifPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
-        Updater.cleanup(context, info)
-        Updater.downloaded(context, info)?.let { f ->
-            updateUi = UpdateUi.Ready(info, f)
-            return@LaunchedEffect
-        }
-        if (Updater.onWifi(context)) {
-            startDownload(info)
-        } else {
-            updateUi = UpdateUi.WaitingWifi(info)
-            Updater.notifyAvailable(context, info)
-        }
+        Updater.checkAndMaybeStart(context)
     }
 
     // Wi-Fi arriving later continues the auto-update
     DisposableEffect(Unit) {
         val cb = Updater.observeWifi(context) {
-            val st = updateUi
-            if (st is UpdateUi.WaitingWifi) startDownload(st.info)
+            // only kick off if we were waiting for Wi-Fi
+            if (Updater.state.value is UpdateUi.WaitingWifi) {
+                val st = Updater.state.value as UpdateUi.WaitingWifi
+                Updater.startDownload(context, st.info)
+            }
         }
         onDispose { Updater.unregisterWifi(context, cb) }
     }
@@ -202,7 +176,10 @@ fun ChatScreen(onSettings: () -> Unit) {
     }
 
     Box(Modifier.fillMaxSize().background(BeamColors.Ink)) {
-        WaveBackground(Modifier.matchParentSize())
+        ChatBackground(
+            modifier = Modifier.matchParentSize(),
+            intensity = if (busy || input.isNotBlank()) 1f else 0f,
+        )
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding()) {
         // header
         Row(
@@ -244,15 +221,13 @@ fun ChatScreen(onSettings: () -> Unit) {
         }
         HorizontalDivider(color = BeamColors.Line, thickness = 1.dp)
 
-        if (updateUi != UpdateUi.None) {
+        if (updateUi !is UpdateUi.None && !bannerDismissed) {
             UpdateBanner(
                 state = updateUi,
-                onDownload = { info -> startDownload(info) },
+                onDownload = { info -> Updater.startDownload(context, info) },
                 onInstall = { file -> Updater.install(context, file) },
-                onDismiss = {
-                    updateJob?.cancel()
-                    updateUi = UpdateUi.None
-                },
+                onOpenInBrowser = { info -> Updater.openInBrowser(context, info) },
+                onDismiss = { bannerDismissed = true },
             )
         }
 
@@ -316,13 +291,14 @@ fun ChatScreen(onSettings: () -> Unit) {
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 itemsIndexed(messages, key = { i, _ -> i }) { index, (text, role) ->
                     when (role) {
                         "user" -> Row(
                             Modifier.fillMaxWidth().animateItem(),
                             horizontalArrangement = Arrangement.End,
+                            verticalAlignment = Alignment.Bottom,
                         ) {
                             Text(
                                 text,
@@ -330,8 +306,21 @@ fun ChatScreen(onSettings: () -> Unit) {
                                 fontSize = 15.sp,
                                 lineHeight = 22.sp,
                                 modifier = Modifier
-                                    .fillMaxWidth(0.85f)
-                                    .background(BeamColors.Sage.copy(alpha = 0.16f), RoundedCornerShape(18.dp, 18.dp, 4.dp, 18.dp))
+                                    .fillMaxWidth(0.86f)
+                                    .background(
+                                        Brush.verticalGradient(
+                                            listOf(
+                                                BeamColors.Sage.copy(alpha = 0.20f),
+                                                BeamColors.Sage.copy(alpha = 0.12f),
+                                            ),
+                                        ),
+                                        RoundedCornerShape(20.dp, 20.dp, 6.dp, 20.dp),
+                                    )
+                                    .border(
+                                        1.dp,
+                                        BeamColors.Sage.copy(alpha = 0.30f),
+                                        RoundedCornerShape(20.dp, 20.dp, 6.dp, 20.dp),
+                                    )
                                     .padding(horizontal = 14.dp, vertical = 11.dp),
                             )
                         }
@@ -339,21 +328,32 @@ fun ChatScreen(onSettings: () -> Unit) {
                         else -> {
                             // blinking caret while the answer streams in
                             val showCaret = busy && index == messages.lastIndex
-                            Column(Modifier.fillMaxWidth(0.9f).animateItem()) {
-                                Text(
-                                    text,
-                                    color = BeamColors.Mist,
-                                    fontSize = 15.sp,
-                                    lineHeight = 22.sp,
+                            Row(
+                                Modifier.fillMaxWidth().animateItem(),
+                                verticalAlignment = Alignment.Top,
+                            ) {
+                                Box(
+                                    Modifier
+                                        .padding(top = 4.dp, end = 9.dp)
+                                        .size(8.dp)
+                                        .background(BeamColors.Sage, CircleShape),
                                 )
-                                if (showCaret) {
-                                    Box(
-                                        Modifier
-                                            .padding(top = 2.dp)
-                                            .size(width = 8.dp, height = 16.dp)
-                                            .alpha(caretAlpha)
-                                            .background(BeamColors.Sage),
+                                Column(Modifier.fillMaxWidth(0.9f)) {
+                                    Text(
+                                        text,
+                                        color = BeamColors.Mist,
+                                        fontSize = 15.sp,
+                                        lineHeight = 22.sp,
                                     )
+                                    if (showCaret) {
+                                        Box(
+                                            Modifier
+                                                .padding(top = 2.dp)
+                                                .size(width = 8.dp, height = 16.dp)
+                                                .alpha(caretAlpha)
+                                                .background(BeamColors.Sage),
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -479,7 +479,7 @@ fun ChatScreen(onSettings: () -> Unit) {
                     .clickable(interactionSource = interaction, indication = null, enabled = enabled) { send() },
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(Icons.Rounded.Send, "Poslať", tint = BeamColors.SageInk, modifier = Modifier.size(20.dp))
+                Icon(Icons.AutoMirrored.Rounded.Send, "Poslať", tint = BeamColors.SageInk, modifier = Modifier.size(20.dp))
             }
         }
         }
