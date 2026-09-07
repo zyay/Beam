@@ -15,6 +15,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -32,6 +33,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
@@ -71,7 +73,7 @@ fun VoiceScreen(onClose: () -> Unit) {
 
     fun startVoice() {
         muted = false
-        val v = LiveVoice(BuildConfig.BEAM_GOOGLE_KEY) { crisisShown = true }
+        val v = LiveVoice(context, BuildConfig.BEAM_GOOGLE_KEY) { crisisShown = true }
         voice = v
         v.start()
     }
@@ -110,6 +112,10 @@ fun VoiceScreen(onClose: () -> Unit) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text("Hlasový rozhovor", fontWeight = FontWeight.SemiBold, color = BeamColors.Mist)
+                if (!callEnded) {
+                    Spacer(Modifier.width(8.dp))
+                    LiveDot()
+                }
                 Spacer(Modifier.weight(1f))
                 if (!callEnded && elapsedSec > 0) {
                     Text(
@@ -140,13 +146,34 @@ fun VoiceScreen(onClose: () -> Unit) {
                     MissingKeyNotice()
                 } else if (!hasMic) {
                     MicPermissionNotice { permissionLauncher.launch(Manifest.permission.RECORD_AUDIO) }
+                } else if (v != null && v.phase == VoicePhase.FAILED) {
+                    FailedNotice(
+                        reason = v.failure ?: "Niečo sa pokazilo.",
+                        onRetry = { voice = null; startVoice() },
+                    )
                 } else if (v != null) {
                     val phase = v.phase
                     val level by v.level.collectAsState()
                     val ring by animateFloatAsState(level, spring(dampingRatio = 0.5f, stiffness = 700f))
+                    val rot = rememberInfiniteTransition(label = "ring-rotation")
+                    val ringAngle by rot.animateFloat(
+                        initialValue = 0f,
+                        targetValue = 360f,
+                        animationSpec = infiniteRepeatable(tween(18000, easing = LinearEasing)),
+                        label = "ring-angle",
+                    )
 
-                    // aura + mascot
-                    Box(contentAlignment = Alignment.Center) {
+                    // aura + dot ring + mascot
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.size(320.dp),
+                    ) {
+                        LevelDotRing(
+                            level = ring,
+                            angle = ringAngle,
+                            phaseBoost = if (phase == VoicePhase.SPEAKING) 0.7f else 1f,
+                            modifier = Modifier.matchParentSize(),
+                        )
                         Box(
                             Modifier
                                 .size(232.dp)
@@ -232,23 +259,11 @@ fun VoiceScreen(onClose: () -> Unit) {
                 Modifier.fillMaxWidth().padding(bottom = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                if (v != null && (v.phase == VoicePhase.ENDED || v.phase == VoicePhase.FAILED)) {
+                if (v != null && v.phase == VoicePhase.ENDED) {
                     Text(
-                        v.failure ?: "Hlasový hovor sa ukončil. Môžeš to skúsiť znova, alebo sa vrátiť späť na písanie.",
+                        "Hlasový hovor sa ukončil. Môžeš to skúsiť znova, alebo sa vrátiť späť na písanie.",
                         color = BeamColors.Fog, fontSize = 12.sp, textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth().padding(bottom = 14.dp),
-                    )
-                    Text(
-                        "Skúsiť znova",
-                        color = BeamColors.Sage, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier
-                            .padding(bottom = 16.dp)
-                            .background(BeamColors.Sage.copy(alpha = 0.12f), RoundedCornerShape(999.dp))
-                            .clickable {
-                                voice = null
-                                startVoice()
-                            }
-                            .padding(horizontal = 26.dp, vertical = 10.dp),
                     )
                 }
                 if (v != null && !callEnded) {
@@ -412,5 +427,92 @@ private fun MissingKeyNotice() {
             "Nainštaluj si APK z oficiálneho vydania.",
             color = BeamColors.Fog, fontSize = 13.sp,
         )
+    }
+}
+
+@Composable
+private fun LiveDot() {
+    val transition = rememberInfiniteTransition(label = "live-dot")
+    val alpha by transition.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(1200), RepeatMode.Reverse),
+        label = "live-alpha",
+    )
+    Box(
+        Modifier
+            .size(8.dp)
+            .graphicsLayer { this.alpha = alpha }
+            .background(BeamColors.Sage, CircleShape),
+    )
+}
+
+@Composable
+private fun LevelDotRing(
+    level: Float,
+    angle: Float,
+    phaseBoost: Float,
+    modifier: Modifier = Modifier,
+) {
+    val n = 36
+    val baseRadiusFraction = 0.46f
+    val baseDot = 4.dp
+    val maxDot = 9.dp
+    Canvas(modifier = modifier) {
+        val cx = size.width / 2f
+        val cy = size.height / 2f
+        val radius = size.minDimension * baseRadiusFraction
+        val rotRad = Math.toRadians(angle.toDouble())
+        for (i in 0 until n) {
+            val theta = (i.toDouble() / n) * 2.0 * Math.PI + rotRad
+            val x = cx + radius * kotlin.math.cos(theta).toFloat()
+            val y = cy + radius * kotlin.math.sin(theta).toFloat()
+            val phase = i.toFloat() / n * (Math.PI * 2.0).toFloat() * 2f
+            val wave = 0.5f + 0.5f * kotlin.math.sin(phase)
+            val boost = (level * phaseBoost) * (0.4f + 0.6f * wave)
+            val sz = baseDot.toPx() + (maxDot.toPx() - baseDot.toPx()) * boost
+            val a = (0.18f + 0.72f * boost).coerceIn(0f, 1f)
+            drawCircle(
+                color = androidx.compose.ui.graphics.Color.White.copy(alpha = a),
+                radius = sz / 2f,
+                center = Offset(x, y),
+            )
+        }
+    }
+}
+
+@Composable
+private fun FailedNotice(reason: String, onRetry: () -> Unit) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(
+            Modifier
+                .size(72.dp)
+                .background(BeamColors.Card, CircleShape)
+                .border(1.dp, BeamColors.Line, CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text("!", color = BeamColors.Sage, fontSize = 32.sp, fontWeight = FontWeight.SemiBold)
+        }
+        Spacer(Modifier.height(18.dp))
+        Text(
+            "Hovor sa skončil.",
+            color = BeamColors.Mist, fontWeight = FontWeight.Medium, fontSize = 17.sp,
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            reason,
+            color = BeamColors.Fog, fontSize = 14.sp, lineHeight = 20.sp, textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(0.78f),
+        )
+        Spacer(Modifier.height(22.dp))
+        Box(
+            Modifier
+                .background(BeamColors.Sage, RoundedCornerShape(999.dp))
+                .clickable(onClick = onRetry)
+                .padding(horizontal = 30.dp, vertical = 13.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text("Skúsiť znova", color = BeamColors.SageInk, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+        }
     }
 }

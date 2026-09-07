@@ -259,9 +259,14 @@ class Api(private val session: Session) {
             val normalized = text
                 .normalizeDiacritics()
                 .lowercase()
-            return Regex(
-                "(nechcem\\s+(uz\\s+)?zit|nemam\\s+(chut|silu)\\s+zi(t|t)|skoncit\\s+(so zivo|to)|zabit\\s+sa|sebavraz\\w*|suicid\\w*|zomrie(t|t)|umrie(t|t)|prehltn\\w*\\s+(table|pilul)|chcem\\s+zomrie|kill\\s+myself|end\\s+my\\s+life|want\\s+to\\s+die)"
-            ).containsMatchIn(normalized)
+            // Must match the server-side patterns in config/prompts.json — both sides
+            // trigger the crisis card on the same inputs, otherwise the Android UI
+            // could miss a phrasing the server already escalates.
+            val patterns = listOf(
+                "(nechcem\\s+(uz\\s+)?zit|uz\\s+nechcem\\s+zit|nemam\\s+(chut|silu)\\s+zi(t|t)|nemam\\s+(dovod|preco|zmysel)\\s+zit|skoncit\\s+(so zivo|to)|zabi(t|jem|jeme|ju)\\s+sa|chcem\\s+(sa\\s+)?zabit|obes\\w*\\s+sa|podrez\\w*\\s+(si\\s+)?(zil|ruk|krk|zapast)|skocim\\s+(pod|z|zo|pred)\\s+|predavk\\w*|sebavraz\\w*|sebapostodzov\\w*|sebaposkodzov\\w*|suicid\\w*|zomrie(t|m|s|me|te)|umrie(t|m|s|me|te)|zomiera(t|m|s|me|te)|umiera(t|m|s|me|te)|prehltn\\w*\\s+(table|pilul)|chcem\\s+zomrie|jedno\\s+ci\\s+(zijem|ze\\s+zijem)|((radsej|najradsej)\\s+(by\\s+)?(som\\s+)?|keby\\s+som\\s+(tak\\s+)?)(zomrel|umrel)(a|i)?)",
+                "(kill\\s+myself|end\\s+my\\s+life|end\\s+it\\s+all|want\\s+to\\s+die|want\\s+to\\s+(hurt|kill)\\s+myself|hurt\\s+myself|self[\\s\\-]?harm|suicid\\w*|overdos\\w*|take\\s+my\\s+(own\\s+)?life|no\\s+reason\\s+to\\s+live|better\\s+off\\s+dead|want\\s+to\\s+be\\s+dead|wish\\s+(i\\s+was|i\\s+were|to\\s+be)\\s+dead|(i\\s+am|i'?m)\\s+dying\\b(?!\\s+(to|of|for)))",
+            )
+            return patterns.any { Regex(it).containsMatchIn(normalized) }
         }
 
         private fun String.normalizeDiacritics(): String {

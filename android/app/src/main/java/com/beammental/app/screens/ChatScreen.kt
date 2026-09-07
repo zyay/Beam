@@ -81,10 +81,18 @@ fun ChatScreen(onSettings: () -> Unit) {
     var busy by remember { mutableStateOf(false) }
     var streaming by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
+    var lastUser by remember { mutableStateOf<String?>(null) }
     var voiceOpen by remember { mutableStateOf(false) }
     var updateUi by remember { mutableStateOf<UpdateUi>(UpdateUi.None) }
     var updateJob by remember { mutableStateOf<Job?>(null) }
     val listState = rememberLazyListState()
+    val caretTransition = rememberInfiniteTransition(label = "caret")
+    val caretAlpha by caretTransition.animateFloat(
+        initialValue = 0.25f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(560, easing = LinearEasing), RepeatMode.Reverse),
+        label = "caret-alpha",
+    )
 
     fun startDownload(info: UpdateInfo) {
         updateJob?.cancel()
@@ -164,6 +172,7 @@ fun ChatScreen(onSettings: () -> Unit) {
         }
 
         messages = messages + (content to "user")
+        lastUser = content
         val history = messages
             .filter { it.second == "user" || it.second == "assistant" }
             .takeLast(12)
@@ -328,15 +337,25 @@ fun ChatScreen(onSettings: () -> Unit) {
                         }
                         "assistant:crisis" -> Box(Modifier.fillMaxWidth().animateItem()) { CrisisCard() }
                         else -> {
-                            // typewriter caret while the answer streams in
-                            val shown = if (busy && index == messages.lastIndex) text + "▍" else text
-                            Text(
-                                shown,
-                                color = BeamColors.Mist,
-                                fontSize = 15.sp,
-                                lineHeight = 22.sp,
-                                modifier = Modifier.fillMaxWidth(0.9f).animateItem(),
-                            )
+                            // blinking caret while the answer streams in
+                            val showCaret = busy && index == messages.lastIndex
+                            Column(Modifier.fillMaxWidth(0.9f).animateItem()) {
+                                Text(
+                                    text,
+                                    color = BeamColors.Mist,
+                                    fontSize = 15.sp,
+                                    lineHeight = 22.sp,
+                                )
+                                if (showCaret) {
+                                    Box(
+                                        Modifier
+                                            .padding(top = 2.dp)
+                                            .size(width = 8.dp, height = 16.dp)
+                                            .alpha(caretAlpha)
+                                            .background(BeamColors.Sage),
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -351,14 +370,49 @@ fun ChatScreen(onSettings: () -> Unit) {
                 }
                 error?.let { e ->
                     item {
-                        Text(
-                            e,
-                            color = Color(0xFFFF9FB0), fontSize = 14.sp,
-                            modifier = Modifier
+                        Column(
+                            Modifier
                                 .fillMaxWidth()
                                 .background(Color(0xFFFF6E82).copy(alpha = 0.08f), RoundedCornerShape(12.dp))
                                 .padding(12.dp),
-                        )
+                        ) {
+                            Text(e, color = Color(0xFFFF9FB0), fontSize = 14.sp)
+                            if (lastUser != null) {
+                                Spacer(Modifier.height(8.dp))
+                                val retryInteraction = remember { MutableInteractionSource() }
+                                val retryPressed by retryInteraction.collectIsPressedAsState()
+                                val retryScale by animateFloatAsState(
+                                    if (retryPressed) 0.95f else 1f,
+                                    spring(dampingRatio = 0.55f),
+                                )
+                                Row(
+                                    Modifier
+                                        .graphicsLayer {
+                                            scaleX = retryScale
+                                            scaleY = retryScale
+                                        }
+                                        .background(Color(0xFFFF6E82).copy(alpha = 0.18f), RoundedCornerShape(999.dp))
+                                        .clickable(
+                                            interactionSource = retryInteraction,
+                                            indication = null,
+                                            enabled = !busy,
+                                        ) {
+                                            error = null
+                                            input = lastUser ?: ""
+                                            send()
+                                        }
+                                        .padding(horizontal = 14.dp, vertical = 7.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Text(
+                                        "Skúsiť znova",
+                                        color = Color(0xFFFFC4CB),
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }

@@ -1,11 +1,14 @@
 package com.beammental.app.voice
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.media.AudioAttributes
 import android.media.AudioFormat
+import android.media.AudioManager
 import android.media.AudioRecord
 import android.media.AudioTrack
 import android.media.MediaRecorder
+import android.os.PowerManager
 import android.util.Base64
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -41,6 +44,7 @@ enum class VoicePhase { CONNECTING, LISTENING, SPEAKING, ENDED, FAILED }
  * Audio: 16 kHz mono PCM up, fixed 24 kHz mono PCM down.
  */
 class LiveVoice(
+    private val ctx: Context,
     private val apiKey: String,
     private val onCrisis: () -> Unit,
 ) {
@@ -82,6 +86,14 @@ class LiveVoice(
     private var playThread: Thread? = null
     private var trackPaused = false
 
+    // Audio session state — saved before we flip into voice-call routing,
+    // restored in stop() so a normal speaker/headphone call after this still works.
+    private val audioManager = ctx.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+    private var savedMode: Int = AudioManager.MODE_NORMAL
+    private var savedSpeaker: Boolean = false
+    @Volatile private var audioSessionSet = false
+    @Volatile private var wakeLock: PowerManager.WakeLock? = null
+
     private val systemInstruction =
         "Si Beam — teplý, pokojný hlasový spoločník na rozhovory o duševnej pohode. " +
             "Rozprávaš plynulú slovenčinu, krátko (jednu až tri vety), prirodzene a s teplom, ako starý priateľ. " +
@@ -94,6 +106,9 @@ class LiveVoice(
         if (active) return
         active = true
         phase = VoicePhase.CONNECTING
+
+        configureAudioSession()
+        acquireProximityWakeLock()
 
         val track = buildTrack()
         this.track = track
@@ -142,6 +157,8 @@ class LiveVoice(
         track = null
         client.dispatcher.executorService.shutdown()
         _level.value = 0f
+        releaseProximityWakeLock()
+        restoreAudioSession()
     }
 
     // ---------- dialog session ----------
@@ -225,6 +242,8 @@ class LiveVoice(
             phase = VoicePhase.FAILED
             failure = "Spojenie sa prerušilo. Skús to znova."
             runCatching { record?.stop() }
+            releaseProximityWakeLock()
+            restoreAudioSession()
         }
 
         override fun onClosed(ws: WebSocket, code: Int, reason: String) {
@@ -340,7 +359,7 @@ class LiveVoice(
         return AudioTrack.Builder()
             .setAudioAttributes(
                 AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
                     .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
                     .build()
             )
@@ -381,6 +400,44 @@ class LiveVoice(
                 off += len
             }
         }
+    }
+
+    // ---------- audio session + wake lock ----------
+
+    private fun configureAudioSession() {
+        if (audioSessionSet) return
+        runCatching {
+            savedMode = audioManager.mode
+            savedSpeaker = audioManager.isSpeakerphoneOn
+            audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
+            audioManager.isSpeakerphoneOn = true
+            audioSessionSet = true
+        }
+    }
+
+    private fun restoreAudioSession() {
+        if (!audioSessionSet) return
+        runCatching {
+            audioManager.isSpeakerphoneOn = savedSpeaker
+            audioManager.mode = savedMode
+        }
+        audioSessionSet = false
+    }
+
+    private fun acquireProximityWakeLock() {
+        if (wakeLock?.isHeld == true) return
+        runCatching {
+            val pm = ctx.getSystemService(Context.POWER_SERVICE) as PowerManager
+            wakeLock = pm.newWakeLock(
+                PowerManager.PROXIMITY_SCREEN_OFF_WAKE_LOCK,
+                "Beam:voice-proximity",
+            ).apply { acquire(60 * 60 * 1000L) } // upper bound; released in stop()
+        }
+    }
+
+    private fun releaseProximityWakeLock() {
+        runCatching { if (wakeLock?.isHeld == true) wakeLock?.release() }
+        wakeLock = null
     }
 
     companion object {
