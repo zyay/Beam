@@ -23,21 +23,33 @@ jobs:
       # gets a fresh debug key, and Android refuses to install the new APK
       # as an update over the previous one (different signature). The same
       # key signs every shipped release.
+      #
+      # We can't use `if: ${{ secrets.X != '' }}` because the Actions parser
+      # rejects "Unrecognized named-value: 'secrets'" when the secret is
+      # not declared on the repo (e.g. a fresh fork). Instead, reference
+      # the secret in `env:` and guard the step with a shell check.
       - name: Restore release keystore
-        if: ${{ secrets.BEAM_KEYSTORE_BASE64 != '' }}
         env:
           BEAM_KEYSTORE_BASE64: ${{ secrets.BEAM_KEYSTORE_BASE64 }}
         run: |
+          if [ -z "$BEAM_KEYSTORE_BASE64" ]; then
+            echo "BEAM_KEYSTORE_BASE64 not set — debug signing will be used"
+            exit 0
+          fi
           mkdir -p android/keystore
           echo "$BEAM_KEYSTORE_BASE64" | base64 -d > android/keystore/beam-release.jks
 
       - name: Write keystore.properties
-        if: ${{ secrets.BEAM_KEYSTORE_BASE64 != '' }}
         env:
+          BEAM_KEYSTORE_BASE64: ${{ secrets.BEAM_KEYSTORE_BASE64 }}
           BEAM_KEYSTORE_PASSWORD: ${{ secrets.BEAM_KEYSTORE_PASSWORD }}
           BEAM_KEY_ALIAS: ${{ secrets.BEAM_KEY_ALIAS }}
           BEAM_KEY_PASSWORD: ${{ secrets.BEAM_KEY_PASSWORD }}
         run: |
+          if [ -z "$BEAM_KEYSTORE_BASE64" ]; then
+            echo "no keystore secret — skipping keystore.properties"
+            exit 0
+          fi
           cat > android/keystore.properties << EOF
           storeFile=keystore/beam-release.jks
           storePassword=${BEAM_KEYSTORE_PASSWORD}
@@ -60,8 +72,13 @@ jobs:
           cp android/app/build/outputs/apk/release/app-release.apk dist/Beam-${GITHUB_REF_NAME:-latest}.apk
 
       - name: Verify release signature
-        if: ${{ secrets.BEAM_KEYSTORE_BASE64 != '' }}
+        env:
+          BEAM_KEYSTORE_BASE64: ${{ secrets.BEAM_KEYSTORE_BASE64 }}
         run: |
+          if [ -z "$BEAM_KEYSTORE_BASE64" ]; then
+            echo "no release keystore restored — skipping signature verify"
+            exit 0
+          fi
           APKSIGNER="$ANDROID_HOME/build-tools/$(ls -1 $ANDROID_HOME/build-tools | sort -V | tail -1)/apksigner"
           $APKSIGNER verify --print-certs dist/*.apk | head -10
 
