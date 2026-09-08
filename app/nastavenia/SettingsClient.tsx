@@ -7,6 +7,7 @@ import {
   ArrowLeft,
   Check,
   IdentificationCard,
+  Microphone,
   PhoneCall,
   SignOut,
   ShieldCheck,
@@ -96,6 +97,26 @@ export default function SettingsClient({
               {saved ? "Uložené" : "Uložiť"}
             </button>
           </div>
+        </BorderBeam>
+      </section>
+
+      <section className="mt-7">
+        <p className="mb-3 flex items-center gap-2 text-sm font-medium text-fog">
+          <Microphone size={16} /> Hlas
+        </p>
+        <BorderBeam className="p-2">
+          <Link
+            href="/hlas"
+            className="flex items-center gap-3 rounded-xl px-3.5 py-3.5 text-[15px] text-mist transition-colors hover:bg-white/4"
+          >
+            <Microphone size={17} className="text-beam-violet" weight="bold" />
+            <span className="flex flex-col">
+              <span>Hlasový hovor</span>
+              <span className="text-xs text-fog">
+                Hovorte s Beamom v reálnom čase
+              </span>
+            </span>
+          </Link>
         </BorderBeam>
       </section>
 

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Gear,
+  Microphone,
   PhoneCall,
   Plus,
   PaperPlaneRight,
@@ -121,6 +122,13 @@ export default function ChatClient({ name }: { name: string }) {
           >
             <Plus size={19} />
           </button>
+          <Link
+            href="/hlas"
+            title="Hlasový hovor"
+            className="rounded-full p-2.5 text-fog transition-colors hover:bg-white/5 hover:text-mist"
+          >
+            <Microphone size={19} />
+          </Link>
           <Link
             href="/nastavenia"
             title="Nastavenia"
