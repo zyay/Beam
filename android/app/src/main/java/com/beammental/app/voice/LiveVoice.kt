@@ -41,6 +41,20 @@ import kotlin.math.sqrt
 enum class VoicePhase { CONNECTING, LISTENING, SPEAKING, ENDED, FAILED }
 enum class OutputMode { SPEAKER, EARPIECE }
 
+/** What the voice screen needs from a call. [LiveVoice] is the real thing;
+ *  a scripted session can drive the same UI in debug builds. */
+interface VoiceSession {
+    val phase: VoicePhase
+    val level: StateFlow<Float>
+    val userCaption: String
+    val modelCaption: String
+    val failure: String?
+    var muted: Boolean
+    fun start()
+    fun stop()
+    fun applyOutputMode()
+}
+
 /**
  * Live voice talk over the Gemini Live API:
  *  - dialog session: gemini-2.5-flash-native-audio-dialog family (audio in, warm Slovak voice out)
@@ -51,26 +65,26 @@ class LiveVoice(
     private val ctx: Context,
     private val apiKey: String,
     private val onCrisis: () -> Unit,
-) {
+) : VoiceSession {
 
-    var phase by mutableStateOf(VoicePhase.CONNECTING)
+    override var phase by mutableStateOf(VoicePhase.CONNECTING)
         private set
-    var userCaption by mutableStateOf("")
+    override var userCaption by mutableStateOf("")
         private set
-    var modelCaption by mutableStateOf("")
+    override var modelCaption by mutableStateOf("")
         private set
-    var failure by mutableStateOf<String?>(null)
+    override var failure by mutableStateOf<String?>(null)
         private set
 
     private val _level = MutableStateFlow(0f)
-    val level: StateFlow<Float> = _level
+    override val level: StateFlow<Float> = _level
 
     @Volatile private var active = false
     @Volatile private var flushRequested = false
     @Volatile private var crisisHandled = false
 
     /** Mic muted: the recorder keeps draining but nothing is sent upstream. */
-    @Volatile var muted = false
+    @Volatile override var muted = false
 
     /** Default = speakerphone so the user can hear Beam hands-free. Earpiece
      *  is for when they want privacy (caller-style routing). Flip with
@@ -122,7 +136,7 @@ class LiveVoice(
             "Keď sa hovor práve pripojil, vždy pozdrav prvá — srdečne, ale stručne. Napríklad: " +
             "„Ahoj, som Beam. Rád ťa počujem. Ako sa dnes máš?“"
 
-    fun start() {
+    override fun start() {
         if (active) return
         active = true
         phase = VoicePhase.CONNECTING
@@ -222,7 +236,7 @@ class LiveVoice(
         }.apply { isDaemon = true }.start()
     }
 
-    fun stop() {
+    override fun stop() {
         if (!active) return
         active = false
         phase = VoicePhase.ENDED
@@ -584,7 +598,7 @@ class LiveVoice(
 
     /** Flip between speakerphone and earpiece routing without tearing down the
      *  call. Speaker = hands-free; Earpiece = private (caller-style). */
-    fun applyOutputMode() {
+    override fun applyOutputMode() {
         runCatching {
             audioManager.isSpeakerphoneOn = (outputMode == OutputMode.SPEAKER)
             Log.d(TAG, "output mode -> $outputMode (speakerphone=${audioManager.isSpeakerphoneOn})")

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Adaptive-icon plate: the app's default ink, so the launcher icon
+         reads as a window into the app. Keep in sync with BeamColors salvia. -->
+    <color name="ic_background">#110F08</color>
+</resources>

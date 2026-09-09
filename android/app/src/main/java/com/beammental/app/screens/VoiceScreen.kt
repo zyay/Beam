@@ -5,7 +5,6 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
@@ -15,7 +14,6 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -26,6 +24,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.VolumeUp
+import androidx.compose.material.icons.rounded.CallEnd
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Hearing
 import androidx.compose.material.icons.rounded.Mic
@@ -35,7 +34,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
@@ -46,23 +44,26 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.beammental.app.BuildConfig
-import com.beammental.app.ui.effects.MascotBlob
 import com.beammental.app.ui.effects.MeshBackground
+import com.beammental.app.ui.effects.OrbState
+import com.beammental.app.ui.effects.OrbStage
 import com.beammental.app.ui.theme.BeamColors
 import com.beammental.app.voice.LiveVoice
 import com.beammental.app.voice.OutputMode
 import com.beammental.app.voice.VoicePhase
+import com.beammental.app.voice.VoiceSession
 import kotlinx.coroutines.delay
 
 /** Full-screen live voice talk with Beam (Gemini Live API). */
 @Composable
-fun VoiceScreen(onClose: () -> Unit) {
+fun VoiceScreen(onClose: () -> Unit, preview: VoiceSession? = null) {
     val context = LocalContext.current
-    var voice by remember { mutableStateOf<LiveVoice?>(null) }
+    var voice by remember { mutableStateOf<VoiceSession?>(null) }
     var crisisShown by remember { mutableStateOf(false) }
     var hasMic by remember {
         mutableStateOf(
-            ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
+            preview != null ||
+                ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
                 PackageManager.PERMISSION_GRANTED
         )
     }
@@ -70,7 +71,7 @@ fun VoiceScreen(onClose: () -> Unit) {
         ActivityResultContracts.RequestPermission()
     ) { granted -> hasMic = granted }
 
-    val keyReady = BuildConfig.BEAM_GOOGLE_KEY.isNotBlank()
+    val keyReady = preview != null || BuildConfig.BEAM_GOOGLE_KEY.isNotBlank()
     var muted by remember { mutableStateOf(false) }
     var outputMode by remember { mutableStateOf(OutputMode.SPEAKER) }
     var elapsedSec by remember { mutableIntStateOf(0) }
@@ -78,7 +79,8 @@ fun VoiceScreen(onClose: () -> Unit) {
     fun startVoice() {
         muted = false
         outputMode = OutputMode.SPEAKER
-        val v = LiveVoice(context, BuildConfig.BEAM_GOOGLE_KEY) { crisisShown = true }
+        val v = preview
+            ?: LiveVoice(context, BuildConfig.BEAM_GOOGLE_KEY) { crisisShown = true }
         voice = v
         v.applyOutputMode()
         v.start()
@@ -170,75 +172,36 @@ fun VoiceScreen(onClose: () -> Unit) {
                     val phase = v.phase
                     val level by v.level.collectAsState()
                     val ring by animateFloatAsState(level, spring(dampingRatio = 0.5f, stiffness = 700f))
-                    val rot = rememberInfiniteTransition(label = "ring-rotation")
-                    val ringAngle by rot.animateFloat(
-                        initialValue = 0f,
-                        targetValue = 360f,
-                        animationSpec = infiniteRepeatable(tween(18000, easing = LinearEasing)),
-                        label = "ring-angle",
+                    val orbState = when (phase) {
+                        VoicePhase.CONNECTING -> OrbState.Thinking
+                        VoicePhase.SPEAKING -> OrbState.Speaking
+                        VoicePhase.LISTENING -> if (muted) OrbState.Idle else OrbState.Listening
+                        else -> OrbState.Idle
+                    }
+                    // orb stage: the cloud is emissive, so it lights the air around it
+                    OrbStage(
+                        modifier = Modifier.size(340.dp),
+                        state = orbState,
+                        level = ring,
+                        accent = if (phase == VoicePhase.SPEAKING) BeamColors.Sage else Color(0xFFC3CBFF),
                     )
 
-                    // aura + dot ring + mascot
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.size(320.dp),
-                    ) {
-                        LevelDotRing(
-                            level = ring,
-                            angle = ringAngle,
-                            phaseBoost = if (phase == VoicePhase.SPEAKING) 0.7f else 1f,
-                            modifier = Modifier.matchParentSize(),
-                        )
-                        Box(
-                            Modifier
-                                .size(232.dp)
-                                .graphicsLayer {
-                                    alpha = 0.07f + ring * 0.20f
-                                    scaleX = 1f + ring * 0.22f
-                                    scaleY = 1f + ring * 0.22f
-                                }
-                                .background(BeamColors.Sage.copy(alpha = 0.35f), CircleShape)
-                        )
-                        val pulse = rememberInfiniteTransition(label = "aura")
-                        val breathe by pulse.animateFloat(
-                            initialValue = 0.92f,
-                            targetValue = 1.06f,
-                            animationSpec = infiniteRepeatable(tween(2400, easing = LinearEasing), RepeatMode.Reverse),
-                            label = "breathe",
-                        )
-                        Box(
-                            Modifier
-                                .size(172.dp)
-                                .graphicsLayer {
-                                    val s = if (phase == VoicePhase.SPEAKING) breathe else 1f + ring * 0.10f
-                                    scaleX = s
-                                    scaleY = s
-                                    alpha = 0.12f + ring * 0.14f
-                                }
-                                .background(BeamColors.Sage.copy(alpha = 0.45f), CircleShape)
-                        )
-                        MascotBlob(
-                            modifier = Modifier.size(132.dp),
-                            blobSize = 132.dp,
-                            animation = when (phase) {
-                                VoicePhase.CONNECTING -> "thinking"
-                                VoicePhase.SPEAKING -> "happy"
-                                VoicePhase.LISTENING -> "listening"
-                                else -> "idle"
-                            },
-                        )
-                    }
-
-                    Spacer(Modifier.height(34.dp))
+                    Spacer(Modifier.height(30.dp))
 
                     val status = when (phase) {
-                        VoicePhase.CONNECTING -> "Pripájam sa…"
-                        VoicePhase.LISTENING -> if (muted) "Mikrofón je stlmený." else "Počúvam ťa…"
-                        VoicePhase.SPEAKING -> "Beam rozpráva…"
-                        VoicePhase.ENDED -> "Hovor sa skončil."
-                        VoicePhase.FAILED -> v.failure ?: "Niečo sa pokazilo."
+                        VoicePhase.CONNECTING -> "Pripájam sa"
+                        VoicePhase.LISTENING -> if (muted) "Mikrofón stlmený" else "Počúvam ťa"
+                        VoicePhase.SPEAKING -> "Beam rozpráva"
+                        VoicePhase.ENDED -> "Hovor sa skončil"
+                        VoicePhase.FAILED -> v.failure ?: "Niečo sa pokazilo"
                     }
-                    Text(status, color = BeamColors.Fog, fontSize = 15.sp)
+                    Text(
+                        status,
+                        color = BeamColors.Fog,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        letterSpacing = 1.8.sp,
+                    )
 
                     Spacer(Modifier.height(26.dp))
 
@@ -290,105 +253,74 @@ fun VoiceScreen(onClose: () -> Unit) {
                         )
                     }
                     Row(
-                        Modifier.fillMaxWidth().padding(bottom = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                        Modifier.fillMaxWidth().padding(bottom = 14.dp),
+                        verticalAlignment = Alignment.Top,
+                        horizontalArrangement = Arrangement.spacedBy(26.dp, Alignment.CenterHorizontally),
                     ) {
-                        val micInteraction = remember { MutableInteractionSource() }
-                        val micPressed by micInteraction.collectIsPressedAsState()
-                        val micScale by animateFloatAsState(if (micPressed) 0.94f else 1f, spring(dampingRatio = 0.55f))
-                        Row(
-                            Modifier
-                                .graphicsLayer { scaleX = micScale; scaleY = micScale }
-                                .background(
-                                    if (muted) Color(0xFFB4525E).copy(alpha = 0.18f) else BeamColors.Card,
-                                    RoundedCornerShape(999.dp),
-                                )
-                                .border(
-                                    1.dp,
-                                    if (muted) Color(0xFFB4525E).copy(alpha = 0.5f) else BeamColors.Line,
-                                    RoundedCornerShape(999.dp),
-                                )
-                                .clickable(interactionSource = micInteraction, indication = null) {
-                                    muted = !muted
-                                    v.muted = muted
-                                }
-                                .padding(horizontal = 18.dp, vertical = 11.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(
-                                if (muted) Icons.Rounded.MicOff else Icons.Rounded.Mic,
-                                null,
-                                tint = if (muted) Color(0xFFFFC4CB) else BeamColors.Sage,
-                                modifier = Modifier.size(17.dp),
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                if (muted) "Zapnúť" else "Stlmiť",
-                                color = if (muted) Color(0xFFFFC4CB) else BeamColors.Mist,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Medium,
-                            )
-                        }
-                        val outInteraction = remember { MutableInteractionSource() }
-                        val outPressed by outInteraction.collectIsPressedAsState()
-                        val outScale by animateFloatAsState(if (outPressed) 0.94f else 1f, spring(dampingRatio = 0.55f))
-                        Row(
-                            Modifier
-                                .graphicsLayer { scaleX = outScale; scaleY = outScale }
-                                .background(BeamColors.Card, RoundedCornerShape(999.dp))
-                                .border(1.dp, BeamColors.Line, RoundedCornerShape(999.dp))
-                                .clickable(interactionSource = outInteraction, indication = null) {
-                                    outputMode = if (outputMode == OutputMode.SPEAKER) OutputMode.EARPIECE else OutputMode.SPEAKER
-                                    v.applyOutputMode()
-                                }
-                                .padding(horizontal = 18.dp, vertical = 11.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(
-                                if (outputMode == OutputMode.SPEAKER) Icons.AutoMirrored.Rounded.VolumeUp else Icons.Rounded.Hearing,
-                                null,
-                                tint = BeamColors.Sage,
-                                modifier = Modifier.size(17.dp),
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                if (outputMode == OutputMode.SPEAKER) "Reproduktor" else "Slúchadlo",
-                                color = BeamColors.Mist,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Medium,
-                            )
-                        }
+                        CircleControl(
+                            icon = if (muted) Icons.Rounded.MicOff else Icons.Rounded.Mic,
+                            label = if (muted) "Zapnúť" else "Stlmiť",
+                            tint = if (muted) Color(0xFFFFC4CB) else BeamColors.Mist,
+                            background = if (muted) Color(0xFFB4525E).copy(alpha = 0.20f) else BeamColors.Card,
+                            borderColor = if (muted) Color(0xFFB4525E).copy(alpha = 0.55f) else BeamColors.Line,
+                            onClick = {
+                                muted = !muted
+                                v.muted = muted
+                            },
+                        )
+                        CircleControl(
+                            icon = Icons.Rounded.CallEnd,
+                            label = "Ukončiť",
+                            size = 74.dp,
+                            tint = Color(0xFFFFE1E4),
+                            background = Color(0xFFB4525E).copy(alpha = 0.30f),
+                            borderColor = Color(0xFFB4525E).copy(alpha = 0.72f),
+                            onClick = {
+                                v.stop()
+                                onClose()
+                            },
+                        )
+                        CircleControl(
+                            icon = if (outputMode == OutputMode.SPEAKER) {
+                                Icons.AutoMirrored.Rounded.VolumeUp
+                            } else {
+                                Icons.Rounded.Hearing
+                            },
+                            label = if (outputMode == OutputMode.SPEAKER) "Reproduktor" else "Slúchadlo",
+                            onClick = {
+                                outputMode = if (outputMode == OutputMode.SPEAKER) OutputMode.EARPIECE else OutputMode.SPEAKER
+                                v.applyOutputMode()
+                            },
+                        )
                     }
                 }
-                val ended = callEnded
-                val interaction = remember { MutableInteractionSource() }
-                val pressed by interaction.collectIsPressedAsState()
-                val scale by animateFloatAsState(if (pressed) 0.96f else 1f, spring(dampingRatio = 0.55f))
-                Box(
-                    Modifier
-                        .fillMaxWidth()
-                        .graphicsLayer {
-                            scaleX = scale
-                            scaleY = scale
-                        }
-                        .background(
-                            if (ended) BeamColors.Card else Color(0xFFB4525E).copy(alpha = 0.22f),
-                            RoundedCornerShape(18.dp),
+                if (callEnded) {
+                    val interaction = remember { MutableInteractionSource() }
+                    val pressed by interaction.collectIsPressedAsState()
+                    val scale by animateFloatAsState(if (pressed) 0.96f else 1f, spring(dampingRatio = 0.55f))
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .graphicsLayer {
+                                scaleX = scale
+                                scaleY = scale
+                            }
+                            .background(BeamColors.Card, RoundedCornerShape(18.dp))
+                            .border(1.dp, BeamColors.Line, RoundedCornerShape(18.dp))
+                            .clickable(interactionSource = interaction, indication = null) {
+                                v?.stop()
+                                onClose()
+                            }
+                            .padding(vertical = 15.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            "Späť na chat",
+                            color = BeamColors.Mist,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 15.sp,
                         )
-                        .clickable(interactionSource = interaction, indication = null) {
-                            v?.stop()
-                            onClose()
-                        }
-                        .padding(vertical = 15.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        if (ended) "Späť na chat" else "Ukončiť hovor",
-                        color = if (ended) BeamColors.Fog else Color(0xFFFFC4CB),
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 15.sp,
-                    )
+                    }
                 }
                 Spacer(Modifier.height(10.dp))
                 Text(
@@ -492,36 +424,44 @@ private fun LiveDot() {
 }
 
 @Composable
-private fun LevelDotRing(
-    level: Float,
-    angle: Float,
-    phaseBoost: Float,
+private fun CircleControl(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    tint: Color = BeamColors.Mist,
+    background: Color = BeamColors.Card,
+    borderColor: Color = BeamColors.Line,
+    size: androidx.compose.ui.unit.Dp = 60.dp,
 ) {
-    val n = 36
-    val baseRadiusFraction = 0.46f
-    val baseDot = 4.dp
-    val maxDot = 9.dp
-    Canvas(modifier = modifier) {
-        val cx = size.width / 2f
-        val cy = size.height / 2f
-        val radius = size.minDimension * baseRadiusFraction
-        val rotRad = Math.toRadians(angle.toDouble())
-        for (i in 0 until n) {
-            val theta = (i.toDouble() / n) * 2.0 * Math.PI + rotRad
-            val x = cx + radius * kotlin.math.cos(theta).toFloat()
-            val y = cy + radius * kotlin.math.sin(theta).toFloat()
-            val phase = i.toFloat() / n * (Math.PI * 2.0).toFloat() * 2f
-            val wave = 0.5f + 0.5f * kotlin.math.sin(phase)
-            val boost = (level * phaseBoost) * (0.4f + 0.6f * wave)
-            val sz = baseDot.toPx() + (maxDot.toPx() - baseDot.toPx()) * boost
-            val a = (0.18f + 0.72f * boost).coerceIn(0f, 1f)
-            drawCircle(
-                color = androidx.compose.ui.graphics.Color.White.copy(alpha = a),
-                radius = sz / 2f,
-                center = Offset(x, y),
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(if (pressed) 0.90f else 1f, spring(dampingRatio = 0.5f))
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(
+            Modifier
+                .size(size)
+                .graphicsLayer { scaleX = scale; scaleY = scale }
+                .background(background, CircleShape)
+                .border(1.dp, borderColor, CircleShape)
+                .clickable(interactionSource = interaction, indication = null, onClick = onClick),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                icon,
+                label,
+                tint = tint,
+                modifier = Modifier.size(if (size >= 70.dp) 28.dp else 22.dp),
             )
         }
+        Spacer(Modifier.height(7.dp))
+        Text(
+            label,
+            color = BeamColors.Fog,
+            fontSize = 10.sp,
+            letterSpacing = 0.3.sp,
+            maxLines = 1,
+        )
     }
 }
 

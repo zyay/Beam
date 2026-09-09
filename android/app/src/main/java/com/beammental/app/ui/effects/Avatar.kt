@@ -128,9 +128,11 @@ private data class EyeGeom(
 )
 
 // Brand look of the Beam mark — pinned to the launcher icon so the mascot
-// reads as "our Beam" on every theme, not as theme-tinted geometry.
-private val BodyBlueLight = Color(0xFF5FA9F8)
-private val BodyBlueDeep = Color(0xFF1B63DE)
+// reads as "our Beam" on every theme, not as theme-tinted geometry. Same
+// family as the orb: warm white in the light, cool blue-violet in shade.
+private val BodyLight = Color(0xFFFFF7EE)
+private val BodyMid = Color(0xFFE3E8FA)
+private val BodyShade = Color(0xFF8B96D4)
 
 private data class AvatarFrame(
     val headX: Float = 0f,
@@ -406,9 +408,9 @@ fun MascotBlob(
             val cx = size.width / 2f
             val cy = size.height / 2f
 
-            // body: the Beam brand mark — blue gradient on a rounded-cube
-            // front face, matching the launcher icon: light face top-left,
-            // deep face bottom-right, soft sheen where the light lands.
+            // body: the Beam brand mark — a cloud-white rounded cube lit from
+            // the top-left. The cool contact shadow at the bottom-right is what
+            // keeps a white body reading as a lit volume instead of a sticker.
             val bodyW = 232f * s
             val bodyH = 232f * s
             val topLeft = Offset(cx - bodyW / 2f, cy - bodyH / 2f)
@@ -425,7 +427,7 @@ fun MascotBlob(
             clipPath(bodyPath) {
                 drawRoundRect(
                     brush = Brush.linearGradient(
-                        colors = listOf(BodyBlueLight, BodyBlueDeep),
+                        colors = listOf(BodyLight, BodyMid),
                         start = topLeft,
                         end = Offset(topLeft.x + bodyW, topLeft.y + bodyH),
                     ),
@@ -433,14 +435,27 @@ fun MascotBlob(
                     size = Size(bodyW, bodyH),
                     cornerRadius = CornerRadius(corner, corner),
                 )
+                val shX = topLeft.x + bodyW * 0.88f
+                val shY = topLeft.y + bodyH * 0.94f
                 drawCircle(
                     brush = Brush.radialGradient(
-                        colors = listOf(Color.White.copy(alpha = 0.26f), Color.Transparent),
-                        center = Offset(topLeft.x + bodyW * 0.26f, topLeft.y + bodyH * 0.18f),
-                        radius = bodyW * 0.8f,
+                        colors = listOf(BodyShade.copy(alpha = 0.62f), Color.Transparent),
+                        center = Offset(shX, shY),
+                        radius = bodyW * 0.78f,
                     ),
-                    center = Offset(topLeft.x + bodyW * 0.26f, topLeft.y + bodyH * 0.18f),
-                    radius = bodyW * 0.8f,
+                    center = Offset(shX, shY),
+                    radius = bodyW * 0.78f,
+                )
+                val hiX = topLeft.x + bodyW * 0.26f
+                val hiY = topLeft.y + bodyH * 0.18f
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(Color.White.copy(alpha = 0.92f), Color.Transparent),
+                        center = Offset(hiX, hiY),
+                        radius = bodyW * 0.66f,
+                    ),
+                    center = Offset(hiX, hiY),
+                    radius = bodyW * 0.66f,
                 )
             }
 

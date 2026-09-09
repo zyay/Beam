@@ -12,17 +12,21 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.beammental.app.data.Locator
 import com.beammental.app.screens.AuthScreen
 import com.beammental.app.screens.ChatScreen
 import com.beammental.app.screens.LegalScreen
 import com.beammental.app.screens.OnboardingScreen
+import com.beammental.app.screens.OrbLab
 import com.beammental.app.screens.PrehladScreen
 import com.beammental.app.screens.SettingsScreen
+import com.beammental.app.screens.VoiceScreen
 import com.beammental.app.ui.theme.BeamColors
 import com.beammental.app.ui.theme.BeamTheme
 import com.beammental.app.ui.theme.beamThemeByKey
+import com.beammental.app.voice.DebugVoice
 import kotlinx.coroutines.runBlocking
 
 enum class Screen { Auth, Onboarding, Chat, Prehlad, Legal, Settings }
@@ -35,6 +39,27 @@ class MainActivity : ComponentActivity() {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // debug builds only: `am start --es debug_screen orb` opens the orb lab
+        // so the volumetric march can be judged on-device without a live call
+        if (BuildConfig.DEBUG && intent.getStringExtra("debug_screen") == "orb") {
+            setContent { BeamTheme { OrbLab() } }
+            return
+        }
+
+        // debug builds only: `am start --es debug_screen voice` opens the real
+        // VoiceScreen driven by a scripted session so the redesigned orb UI can
+        // be screenshotted on-device without a live Gemini call
+        if (BuildConfig.DEBUG && intent.getStringExtra("debug_screen") == "voice") {
+            setContent {
+                BeamTheme {
+                    val preview = remember { DebugVoice() }
+                    VoiceScreen(onClose = {}, preview = preview)
+                }
+            }
+            return
+        }
+
         Locator.init(this)
 
         // restore session synchronously once, then let the UI drive state
