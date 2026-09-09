@@ -14,6 +14,7 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Badge
 import androidx.compose.material.icons.outlined.Call
+import androidx.compose.material.icons.outlined.Insights
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.SystemUpdate
 import androidx.compose.material.icons.rounded.Logout
@@ -38,7 +39,7 @@ import com.beammental.app.ui.theme.BeamColors
 import kotlinx.coroutines.launch
 
 @Composable
-fun SettingsScreen(onBack: () -> Unit, onLoggedOut: () -> Unit) {
+fun SettingsScreen(onPrehlad: () -> Unit, onLegal: () -> Unit, onBack: () -> Unit, onLoggedOut: () -> Unit) {
     val scope = rememberCoroutineScope()
     val ctx = LocalContext.current
     var name by remember { mutableStateOf("") }
@@ -116,6 +117,35 @@ fun SettingsScreen(onBack: () -> Unit, onLoggedOut: () -> Unit) {
             }
         }
 
+        SectionLabel(Icons.Outlined.Insights, "Prehľad")
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .border(1.dp, BeamColors.Line, RoundedCornerShape(20.dp))
+                .background(BeamColors.Card, RoundedCornerShape(20.dp))
+                .clickable(onClick = onPrehlad)
+                .padding(16.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Outlined.Insights, null,
+                    tint = BeamColors.Sage, modifier = Modifier.size(18.dp),
+                )
+                Spacer(Modifier.width(12.dp))
+                Column {
+                    Text(
+                        "Záznamy nálady",
+                        color = BeamColors.Mist, fontSize = 14.sp, fontWeight = FontWeight.Medium,
+                    )
+                    Text(
+                        "Denný check-in a vývoj za 30 dní",
+                        color = BeamColors.Fog, fontSize = 12.sp,
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(22.dp))
         SectionLabel(Icons.Outlined.Palette, "Motív")
         Column(
             Modifier
@@ -200,18 +230,14 @@ fun SettingsScreen(onBack: () -> Unit, onLoggedOut: () -> Unit) {
         SectionLabel(Icons.Outlined.Description, "Právne")
         Column(Modifier.fillMaxWidth().border(1.dp, BeamColors.Line, RoundedCornerShape(20.dp)).background(BeamColors.Card, RoundedCornerShape(20.dp))) {
             listOf(
-                "ochrana-sukromia" to "Ochrana súkromia",
-                "vseobecne-podmienky" to "Všeobecné podmienky",
-                "zdravotny-disclaimer" to "Zdravotný disclaimer",
-            ).forEach { (slug, label) ->
+                "Ochrana súkromia",
+                "Všeobecné podmienky",
+                "Zdravotný disclaimer",
+            ).forEach { label ->
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .clickable {
-                            ctx.startActivity(
-                                Intent(Intent.ACTION_VIEW, Uri.parse("https://beam-mental-health.vercel.app/pravne/$slug"))
-                            )
-                        }
+                        .clickable(onClick = onLegal)
                         .padding(horizontal = 16.dp, vertical = 14.dp),
                 ) {
                     Icon(Icons.Outlined.Description, null, tint = BeamColors.Fog, modifier = Modifier.size(16.dp))
@@ -266,6 +292,34 @@ private fun UpdateCard(ctx: android.content.Context) {
     val state by Updater.state.collectAsState()
     val s = state
     val currentVer = "Beam ${BuildConfig.VERSION_NAME}"
+
+    // A Play-Store install may not self-update (Play policy). Show a calm
+    // placeholder instead of an updater that can never run there.
+    if (Updater.installedFromPlay(ctx)) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .border(1.dp, BeamColors.Line, RoundedCornerShape(20.dp))
+                .background(BeamColors.Card, RoundedCornerShape(20.dp))
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Outlined.SystemUpdate, null,
+                    tint = BeamColors.Fog, modifier = Modifier.size(16.dp),
+                )
+                Spacer(Modifier.width(12.dp))
+                Text("Nainštalovaná verzia", color = BeamColors.Mist, fontSize = 14.sp)
+                Spacer(Modifier.weight(1f))
+                Text(currentVer, color = BeamColors.Fog, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+            }
+            Spacer(Modifier.height(10.dp))
+            HorizontalDivider(color = BeamColors.Line, thickness = 1.dp)
+            Spacer(Modifier.height(12.dp))
+            Text("Aktualizácie spravuje Google Play.", color = BeamColors.Fog, fontSize = 13.sp, lineHeight = 18.sp)
+        }
+        return
+    }
 
     Column(
         Modifier
@@ -371,6 +425,11 @@ private fun UpdateCard(ctx: android.content.Context) {
                         "Klepni na Nainštalovať a potvrď v systéme.",
                         color = BeamColors.Fog, fontSize = 13.sp,
                     )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "Ak systém upozorní na neznámu aplikáciu, klepni na Detaily a vyber Inštalovať aj tak.",
+                        color = BeamColors.Fog, fontSize = 12.sp, lineHeight = 17.sp,
+                    )
                 }
                 Spacer(Modifier.height(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -378,11 +437,15 @@ private fun UpdateCard(ctx: android.content.Context) {
                         if (mismatch) "Otvoriť na GitHube" else "Nainštalovať",
                         BeamColors.Sage,
                     ) {
-                        if (mismatch) Updater.openInBrowser(ctx, s.info) else Updater.install(ctx, s.file)
+                        if (mismatch) {
+                            Updater.openInBrowser(ctx, s.info)
+                        } else if (!Updater.install(ctx, s.file)) {
+                            Updater.requestInstallPermission(ctx)
+                        }
                     }
                     if (mismatch) {
                         PillAction("Skúsiť nainštalovať", BeamColors.Sage.copy(alpha = 0.14f), BeamColors.Sage) {
-                            Updater.install(ctx, s.file)
+                            if (!Updater.install(ctx, s.file)) Updater.requestInstallPermission(ctx)
                         }
                     }
                 }

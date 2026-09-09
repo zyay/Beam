@@ -31,6 +31,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Insights
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.Phone
@@ -69,7 +70,7 @@ private const val CRISIS_TEXT =
         "Som len chatbot — v takejto chvíli ti musí pomôcť človek. Zavolaj, nie je to zlé rozhodnutie."
 
 @Composable
-fun ChatScreen(onSettings: () -> Unit) {
+fun ChatScreen(onPrehlad: () -> Unit, onSettings: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val notifPermissionLauncher = rememberLauncherForActivityResult(
@@ -101,14 +102,17 @@ fun ChatScreen(onSettings: () -> Unit) {
         if (Build.VERSION.SDK_INT >= 33 && !Updater.notificationsEnabled(context)) {
             notifPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
-        Updater.checkAndMaybeStart(context)
+        // Play installs must not self-update — Play policy; store handles it.
+        if (!Updater.installedFromPlay(context)) {
+            Updater.checkAndMaybeStart(context)
+        }
     }
 
     // Wi-Fi arriving later continues the auto-update
     DisposableEffect(Unit) {
         val cb = Updater.observeWifi(context) {
             // only kick off if we were waiting for Wi-Fi
-            if (Updater.state.value is UpdateUi.WaitingWifi) {
+            if (!Updater.installedFromPlay(context) && Updater.state.value is UpdateUi.WaitingWifi) {
                 val st = Updater.state.value as UpdateUi.WaitingWifi
                 Updater.startDownload(context, st.info)
             }
@@ -221,6 +225,11 @@ fun ChatScreen(onSettings: () -> Unit) {
             )
             Spacer(Modifier.width(8.dp))
             HeaderIcon(
+                icon = { Icon(Icons.Outlined.Insights, "Prehľad", tint = BeamColors.Sage, modifier = Modifier.size(20.dp)) },
+                onClick = onPrehlad,
+            )
+            Spacer(Modifier.width(8.dp))
+            HeaderIcon(
                 icon = { Icon(Icons.Outlined.Add, "Nový rozhovor", tint = BeamColors.Fog, modifier = Modifier.size(20.dp)) },
                 onClick = {
                     if (busy) return@HeaderIcon
@@ -245,7 +254,9 @@ fun ChatScreen(onSettings: () -> Unit) {
             UpdateBanner(
                 state = updateUi,
                 onDownload = { info -> Updater.startDownload(context, info) },
-                onInstall = { file -> Updater.install(context, file) },
+                onInstall = { file ->
+                    if (!Updater.install(context, file)) Updater.requestInstallPermission(context)
+                },
                 onOpenInBrowser = { info -> Updater.openInBrowser(context, info) },
                 onDismiss = { bannerDismissed = true },
             )

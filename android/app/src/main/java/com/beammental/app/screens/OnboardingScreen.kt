@@ -102,6 +102,7 @@ fun OnboardingScreen(onDone: () -> Unit) {
     var support by remember { mutableStateOf(setOf<String>()) }
     var cadence by remember { mutableStateOf("") }
     var time by remember { mutableStateOf("") }
+    var ack by remember { mutableStateOf(false) }
     var saving by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
@@ -115,7 +116,7 @@ fun OnboardingScreen(onDone: () -> Unit) {
         true,
         cadence.isNotBlank(),
         true,
-        true,
+        ack,
     )[step]
 
     fun finish() {
@@ -307,6 +308,23 @@ fun OnboardingScreen(onDone: () -> Unit) {
                                 "Beam nie je zdravotnícka pomôcka ani náhrada psychológa. V kríze vždy volaj 0800 900 900 (nonstop).",
                                 color = BeamColors.Fog, fontSize = 12.sp, textAlign = TextAlign.Center,
                             )
+                            Spacer(Modifier.height(10.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Checkbox(
+                                    checked = ack,
+                                    onCheckedChange = { ack = it },
+                                    colors = CheckboxDefaults.colors(
+                                        checkedColor = BeamColors.Sage,
+                                        checkmarkColor = BeamColors.SageInk,
+                                        uncheckedColor = BeamColors.Fog,
+                                    ),
+                                )
+                                Text(
+                                    "Rozumiem. Beam mi neposkytne lekársku starostlivosť.",
+                                    color = BeamColors.Fog, fontSize = 12.sp, lineHeight = 16.sp,
+                                    modifier = Modifier.clickable { ack = !ack },
+                                )
+                            }
                         }
                     }
                 }

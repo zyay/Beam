@@ -50,7 +50,7 @@ fun MeshBackground(
         label = "drift",
     )
     val theme = BeamColors.current
-    val live = 0.4f + 0.6f * intensity.coerceIn(0f, 1f)
+    val live = 0.3f + 0.7f * intensity.coerceIn(0f, 1f)
 
     if (Build.VERSION.SDK_INT >= 33) {
         MeshShaderBackground(modifier = modifier, t = t, live = live, theme = theme)
@@ -81,28 +81,27 @@ private val MESH_AGSL = """
 
     half4 main(float2 fragCoord) {
         float2 uv = fragCoord / iResolution;
-        float3 sum = float3(0.0);
-        float  wsum = 0.0;
+
+        // Additive ambient glow over ink. The previous version averaged the
+        // blob colours (sum/wsum) and kept 85% of it — pastel wave colours
+        // then filled the whole screen and destroyed dark-theme contrast.
+        // Ink stays the base; blobs are light that falls off exponentially.
+        float gain = 0.06 + 0.14 * iLive;
+        float3 c = cInk.rgb;
         float d1 = length(uv - p1);
-        float w1 = exp(-d1 * d1 / max(r1 * r1, 0.0001));
-        sum  += c1.rgb * w1;
-        wsum += w1;
+        c += c1.rgb * exp(-d1 * d1 / max(r1 * r1, 0.0001)) * gain;
         float d2 = length(uv - p2);
-        float w2 = exp(-d2 * d2 / max(r2 * r2, 0.0001));
-        sum  += c2.rgb * w2;
-        wsum += w2;
+        c += c2.rgb * exp(-d2 * d2 / max(r2 * r2, 0.0001)) * gain;
         float d3 = length(uv - p3);
-        float w3 = exp(-d3 * d3 / max(r3 * r3, 0.0001));
-        sum  += c3.rgb * w3;
-        wsum += w3;
+        c += c3.rgb * exp(-d3 * d3 / max(r3 * r3, 0.0001)) * gain;
         float d4 = length(uv - p4);
-        float w4 = exp(-d4 * d4 / max(r4 * r4, 0.0001));
-        sum  += c4.rgb * w4;
-        wsum += w4;
-        float3 c = sum / max(wsum, 0.0001);
-        // tint by the active theme ink so the background never washes out
-        c = mix(cInk.rgb, c, 0.85 + 0.15 * iLive);
-        return half4(c, 1.0);
+        c += c4.rgb * exp(-d4 * d4 / max(r4 * r4, 0.0001)) * gain;
+
+        // vignette: pull the edges back to ink so the eye stays centered
+        float edge = smoothstep(0.55, 1.15, length(uv - float2(0.5, 0.5)));
+        c = mix(c, cInk.rgb, edge * 0.55);
+
+        return half4(clamp(c, float3(0.0), float3(1.0)), 1.0);
     }
 """.trimIndent()
 
@@ -132,28 +131,28 @@ private fun MeshShaderBackground(
             0.30f + drift * (0.5f + 0.5f * sin(time * 0.55f)),
             0.25f + drift * (0.5f + 0.5f * cos(time * 0.41f)),
         )
-        shader.setFloatUniform("r1", 0.45f)
+        shader.setFloatUniform("r1", 0.34f)
         shader.setFloatUniform("c2", w[1].red, w[1].green, w[1].blue, 1f)
         shader.setFloatUniform(
             "p2",
             0.70f + drift * (0.5f + 0.5f * sin(time * 0.37f + 1.3f)),
             0.30f + drift * (0.5f + 0.5f * cos(time * 0.49f + 0.7f)),
         )
-        shader.setFloatUniform("r2", 0.50f)
+        shader.setFloatUniform("r2", 0.38f)
         shader.setFloatUniform("c3", w[2].red, w[2].green, w[2].blue, 1f)
         shader.setFloatUniform(
             "p3",
             0.25f + drift * (0.5f + 0.5f * sin(time * 0.31f + 2.1f)),
             0.75f + drift * (0.5f + 0.5f * cos(time * 0.43f + 1.4f)),
         )
-        shader.setFloatUniform("r3", 0.55f)
+        shader.setFloatUniform("r3", 0.42f)
         shader.setFloatUniform("c4", w[3 % w.size].red, w[3 % w.size].green, w[3 % w.size].blue, 1f)
         shader.setFloatUniform(
             "p4",
             0.75f + drift * (0.5f + 0.5f * sin(time * 0.29f + 3.4f)),
             0.72f + drift * (0.5f + 0.5f * cos(time * 0.45f + 2.2f)),
         )
-        shader.setFloatUniform("r4", 0.50f)
+        shader.setFloatUniform("r4", 0.38f)
         shader.setFloatUniform("cInk", theme.ink.red, theme.ink.green, theme.ink.blue, 1f)
         drawRect(brush = brush)
     }
@@ -209,7 +208,7 @@ private fun MeshCanvasBackground(
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        b.color.copy(alpha = 0.45f + 0.20f * live),
+                        b.color.copy(alpha = 0.08f + 0.10f * live),
                         Color.Transparent,
                     ),
                     center = Offset(b.cx, b.cy),

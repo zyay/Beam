@@ -54,6 +54,7 @@ fun AuthScreen(onAuthed: (onboarded: Boolean) -> Unit) {
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var consent by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
@@ -61,6 +62,10 @@ fun AuthScreen(onAuthed: (onboarded: Boolean) -> Unit) {
     fun submit() {
         if (busy) return
         error = null
+        if (mode == 1 && !consent) {
+            error = "Pre vytvorenie účtu najprv potvrď súhlas s podmienkami."
+            return
+        }
         busy = true
         scope.launch {
             val result = if (mode == 1)
@@ -163,6 +168,32 @@ fun AuthScreen(onAuthed: (onboarded: Boolean) -> Unit) {
                     password = true,
                     onDone = { submit() },
                 )
+
+                AnimatedVisibility(visible = mode == 1, enter = expandVertically(), exit = shrinkVertically()) {
+                    Row(
+                        Modifier.padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Checkbox(
+                            checked = consent,
+                            onCheckedChange = { consent = it },
+                            colors = CheckboxDefaults.colors(
+                                checkedColor = BeamColors.Sage,
+                                checkmarkColor = BeamColors.SageInk,
+                                uncheckedColor = BeamColors.Fog,
+                            ),
+                        )
+                        Text(
+                            "Súhlasím s Všeobecnými podmienkami a spracovaním údajov. Nie som mladší/ia ako 16 rokov.",
+                            fontSize = 12.sp,
+                            lineHeight = 17.sp,
+                            color = BeamColors.Fog,
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { consent = !consent },
+                        )
+                    }
+                }
 
                 error?.let {
                     Spacer(Modifier.height(12.dp))

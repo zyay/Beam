@@ -16,14 +16,16 @@ import androidx.compose.runtime.setValue
 import com.beammental.app.data.Locator
 import com.beammental.app.screens.AuthScreen
 import com.beammental.app.screens.ChatScreen
+import com.beammental.app.screens.LegalScreen
 import com.beammental.app.screens.OnboardingScreen
+import com.beammental.app.screens.PrehladScreen
 import com.beammental.app.screens.SettingsScreen
 import com.beammental.app.ui.theme.BeamColors
 import com.beammental.app.ui.theme.BeamTheme
 import com.beammental.app.ui.theme.beamThemeByKey
 import kotlinx.coroutines.runBlocking
 
-enum class Screen { Auth, Onboarding, Chat, Settings }
+enum class Screen { Auth, Onboarding, Chat, Prehlad, Legal, Settings }
 
 class MainActivity : ComponentActivity() {
 
@@ -66,9 +68,18 @@ class MainActivity : ComponentActivity() {
                             onDone = { screen = Screen.Chat }
                         )
                         Screen.Chat -> ChatScreen(
-                            onSettings = { screen = Screen.Settings }
+                            onPrehlad = { screen = Screen.Prehlad },
+                            onSettings = { screen = Screen.Settings },
+                        )
+                        Screen.Prehlad -> PrehladScreen(
+                            onBack = { screen = Screen.Chat },
+                        )
+                        Screen.Legal -> LegalScreen(
+                            onBack = { screen = Screen.Chat },
                         )
                         Screen.Settings -> SettingsScreen(
+                            onPrehlad = { screen = Screen.Prehlad },
+                            onLegal = { screen = Screen.Legal },
                             onBack = { screen = Screen.Chat },
                             onLoggedOut = { screen = Screen.Auth },
                         )

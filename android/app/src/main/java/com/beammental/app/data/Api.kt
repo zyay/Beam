@@ -9,6 +9,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -25,6 +26,7 @@ data class ChatMessage(val role: String, val content: String)
 
 data class AuthResult(val ok: Boolean, val hasProfile: Boolean, val error: String?)
 data class ChatResult(val text: String?, val crisis: Boolean, val error: String?)
+data class CheckinRow(val day: String, val mood: Int, val note: String? = null)
 
 /** Thin REST client for the Beam backend (Vercel). Bearer token auth. */
 class Api(private val session: Session) {
@@ -175,6 +177,43 @@ class Api(private val session: Session) {
             return true
         }
         return false
+    }
+
+    /* ---------------- Prehľad: daily mood check-ins ---------------- */
+
+    suspend fun fetchCheckins(): List<CheckinRow> = withContext(Dispatchers.IO) {
+        runCatching {
+            val rb = Request.Builder().url(base + "api/checkins?days=90")
+                .header("Authorization", "Bearer ${session.token().orEmpty()}")
+                .build()
+            client.newCall(rb).execute().use { resp ->
+                if (resp.code != 200) return@use emptyList()
+                val text = resp.body?.string().orEmpty()
+                val obj = runCatching { json.parseToJsonElement(text).jsonObject }.getOrNull()
+                    ?: return@use emptyList()
+                val arr = obj["checkins"]?.jsonArray ?: return@use emptyList()
+                arr.mapNotNull { el ->
+                    val o = el as? JsonObject ?: return@mapNotNull null
+                    val day = o["day"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
+                    val mood = o["mood"]?.jsonPrimitive?.intOrNull ?: return@mapNotNull null
+                    CheckinRow(day, mood, o["note"]?.jsonPrimitive?.contentOrNull)
+                }
+            }
+        }.getOrDefault(emptyList())
+    }
+
+    suspend fun pushCheckin(mood: Int, note: String?): Boolean = withContext(Dispatchers.IO) {
+        val body = buildJsonObject {
+            put("mood", mood)
+            if (!note.isNullOrBlank()) put("note", note.trim())
+        }
+        runCatching {
+            val rb = Request.Builder().url(base + "api/checkins")
+                .header("Authorization", "Bearer ${session.token().orEmpty()}")
+                .post(RequestBody.create("application/json".toMediaType(), body.toString()))
+                .build()
+            client.newCall(rb).execute().use { it.code == 200 }
+        }.getOrDefault(false)
     }
 
     suspend fun chat(history: List<ChatMessage>): ChatResult {

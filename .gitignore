@@ -50,3 +50,5 @@ next-env.d.ts
 /android/keystore/*.jks
 /android/keystore.properties
 /android/keystore/
+.screenshots/
+android/.kotlin/

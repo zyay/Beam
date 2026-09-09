@@ -14,9 +14,14 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
@@ -122,13 +127,17 @@ private data class EyeGeom(
     val angle: Float,
 )
 
+// Brand look of the Beam mark — pinned to the launcher icon so the mascot
+// reads as "our Beam" on every theme, not as theme-tinted geometry.
+private val BodyBlueLight = Color(0xFF5FA9F8)
+private val BodyBlueDeep = Color(0xFF1B63DE)
+
 private data class AvatarFrame(
     val headX: Float = 0f,
     val headY: Float = 0f,
     val headZ: Float = 0f,
     val left: EyeGeom = EyeGeom(20f, 50f, -17.5f, -7f, 0f),
     val right: EyeGeom = EyeGeom(20f, 50f, 17.5f, -7f, 0f),
-    val bodyColor: Color = Color.White,
     val eyeColor: Color = Color(0xFF111316),
     val bodyRatio: Float = 0.75f,
 )
@@ -350,7 +359,6 @@ private class AvatarEngine(private val def: AvatarDef) {
             headZ = headZ,
             left = EyeGeom(wL, hL * blink, -spacing / 2f + xL + sacX, yL + sacY, aL),
             right = EyeGeom(wR, hR * blink, spacing / 2f + xR + sacX, yR + sacY, aR),
-            bodyColor = parseColor(def.colors.body),
             eyeColor = parseColor(def.colors.eyes),
             bodyRatio = def.body.primary.roundness,
         )
@@ -398,16 +406,43 @@ fun MascotBlob(
             val cx = size.width / 2f
             val cy = size.height / 2f
 
-            // body: rounded cube front face
+            // body: the Beam brand mark — blue gradient on a rounded-cube
+            // front face, matching the launcher icon: light face top-left,
+            // deep face bottom-right, soft sheen where the light lands.
             val bodyW = 232f * s
             val bodyH = 232f * s
+            val topLeft = Offset(cx - bodyW / 2f, cy - bodyH / 2f)
             val corner = bodyW * frame.bodyRatio / 2f
-            drawRoundRect(
-                color = frame.bodyColor,
-                topLeft = Offset(cx - bodyW / 2f, cy - bodyH / 2f),
-                size = Size(bodyW, bodyH),
-                cornerRadius = CornerRadius(corner, corner),
-            )
+            val bodyPath = Path().apply {
+                addRoundRect(
+                    RoundRect(
+                        rect = Rect(topLeft, Size(bodyW, bodyH)),
+                        cornerRadius = CornerRadius(corner, corner),
+                    ),
+                )
+            }
+
+            clipPath(bodyPath) {
+                drawRoundRect(
+                    brush = Brush.linearGradient(
+                        colors = listOf(BodyBlueLight, BodyBlueDeep),
+                        start = topLeft,
+                        end = Offset(topLeft.x + bodyW, topLeft.y + bodyH),
+                    ),
+                    topLeft = topLeft,
+                    size = Size(bodyW, bodyH),
+                    cornerRadius = CornerRadius(corner, corner),
+                )
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(Color.White.copy(alpha = 0.26f), Color.Transparent),
+                        center = Offset(topLeft.x + bodyW * 0.26f, topLeft.y + bodyH * 0.18f),
+                        radius = bodyW * 0.8f,
+                    ),
+                    center = Offset(topLeft.x + bodyW * 0.26f, topLeft.y + bodyH * 0.18f),
+                    radius = bodyW * 0.8f,
+                )
+            }
 
             // eyes: vertical pills, per-expression geometry
             listOf(frame.left, frame.right).forEach { eye ->

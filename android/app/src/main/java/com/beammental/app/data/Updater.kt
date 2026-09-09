@@ -15,6 +15,7 @@ import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import android.net.Uri
 import android.os.Build
+import android.provider.Settings
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
@@ -182,8 +183,48 @@ object Updater {
         return if (f.isFile && f.length() > 0) f else null
     }
 
-    fun install(context: Context, file: File) {
+    /** True when this install came from the Play Store. Self-updating is a
+     *  Play-policy violation, so when this returns true the whole updater UI
+     *  hides and updates flow through the store instead. */
+    fun installedFromPlay(context: Context): Boolean = runCatching {
+        val pm = context.packageManager
+        val source = if (Build.VERSION.SDK_INT >= 30) {
+            pm.getInstallSourceInfo(context.packageName).installingPackageName
+        } else {
+            @Suppress("DEPRECATION")
+            pm.getInstallerPackageName(context.packageName)
+        }
+        source == "com.android.vending"
+    }.getOrDefault(false)
+
+    /** May we launch the package installer right now? API 26+ gates sideload
+     *  installs behind a per-app "Install unknown apps" grant; without it the
+     *  system prompt is jarring and some OEMs + Play Protect block silently. */
+    fun canInstallPackages(context: Context): Boolean =
+        Build.VERSION.SDK_INT < 26 ||
+            runCatching { context.packageManager.canRequestPackageInstalls() }
+                .getOrDefault(false)
+
+    /** Opens this app's page in Settings > Apps > Special access >
+     *  Install unknown apps, where the user grants sideloading for Beam. */
+    fun requestInstallPermission(context: Context) {
+        if (Build.VERSION.SDK_INT < 26) return
         runCatching {
+            context.startActivity(
+                Intent(
+                    Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                    Uri.parse("package:${context.packageName}"),
+                ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            )
+        }
+    }
+
+    /** Launches the package installer for the downloaded APK. Returns false
+     *  when the unknown-sources grant is missing — the caller should call
+     *  [requestInstallPermission] and explain, not silently no-op. */
+    fun install(context: Context, file: File): Boolean {
+        if (!canInstallPackages(context)) return false
+        return runCatching {
             val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
             context.startActivity(
                 Intent(Intent.ACTION_VIEW).apply {
@@ -191,7 +232,7 @@ object Updater {
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
             )
-        }
+        }.isSuccess
     }
 
     fun openInBrowser(context: Context, info: UpdateInfo) {
