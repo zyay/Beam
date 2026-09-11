@@ -62,7 +62,7 @@ fun OrbLab() {
                             modifier = Modifier.size(168.dp),
                             state = state,
                             level = 0.4f,
-                            accent = if (state == OrbState.Speaking) BeamColors.Sage else Color(0xFFC3CBFF),
+                            accent = if (state == OrbState.Speaking) BeamColors.Accent else Color(0xFFC3CBFF),
                             orbSize = 138.dp,
                         )
                         Text(label, color = BeamColors.Fog, fontSize = 11.sp, letterSpacing = 1.4.sp)

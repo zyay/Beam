@@ -1,36 +1,22 @@
 package com.beammental.app.screens
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.beammental.app.ui.components.BeamChip
+import com.beammental.app.ui.components.BeamTopBar
 import com.beammental.app.ui.effects.MeshBackground
-import com.beammental.app.ui.effects.MascotBlob
 import com.beammental.app.ui.theme.BeamColors
-
-/* In-app legal viewer — the same three documents the web serves at
- * /pravne, rendered natively so users never have to leave the app to
- * know what happens with their data. One source of truth on the web
- * keeps them aligned; this port is checked against it on releases. */
+import androidx.compose.foundation.background
 
 private data class LegalDoc(val title: String, val updated: String, val body: List<String>)
 
@@ -41,7 +27,7 @@ private val LEGAL_DOCS = listOf(
         body = listOf(
             "Aplikácia Beam (ďalej len „Beam“) spracúva osobné údaje v minimálnom rozsahu potrebnom na prevádzku služby. Tento dokument vysvetľuje, ktoré údaje, načo a ako dlho.",
             "**Ktoré údaje spracúvame.** Pri registrácii uložíme tvoj e-mail a hašované heslo (bcrypt). Počas onboardingu si môžeš zadať meno a preferencie (nálada, oblasti zaťaženia, ciele, frekvencia check-inu) — tieto sa ukladajú do tvojho profilu. Obsah tvojich správ v chate sa ukladá iba v tvojom zariadení; server si ich dlhodobo neukladá. Záznamy nálady v Prehľade sú uložené na serveri pod tvojím účtom a vidíš ich len ty.",
-            "**Načo ich potrebujeme.** Údaje používame výhradne na poskytovanie funkcií Beam: prihlásenie, prispôsobenie rozhovorov a pripomienky. Nepredávame ich ani ich neposkytujeme tretím stranám na marketingové účely.",
+            "**Načo ich potrebujeme.** Údaje používame výhradne na poskytovanie funkcií Beam: prihlásenie, prispôsobenie rozhovorov a pripomienky. Nepredávame ich ani ich neposkytujeme tretím stranám na marketingové účty.",
             "**Spracovanie AI.** Tvoje správy sa posielajú cez náš server do jazykového modelu (Vercel AI Gateway, prevádzkovateľ Vercel Inc.) výhradne na účel vygenerovania odpovede. Nikdy ich nepoužívame na trénovanie modelov.",
             "**Hlasový režim.** Pri hlasovom rozhovore sa audio posiela na Gemini Live API (Google) v reálnom čase na premenu na text a odpoveď. Obsah hovoru si server dlhodobo neukladá; titulky sa zobrazujú len počas hovoru.",
             "**Skladovanie.** Účet a profil uchovávame, kým ho nevymažeš. Chat históriu drží len tvoje zariadenie — vymažeš ju tlačidlom Nový rozhovor alebo vymazaním úložiska.",
@@ -53,12 +39,12 @@ private val LEGAL_DOCS = listOf(
         title = "Všeobecné podmienky",
         updated = "5. septembra 2026",
         body = listOf(
-            "**1. Predmet.** Beam je komunikačná aplikácia na podporu duševnej pohody a sebapoznania. Poskytuje konverzáciu s jazykovým modelom a krízové kontakty. Nie je to zdravotnícka pomôcka, diagnostický nástroj ani náhrada psychologickej, psychiatrickej alebo lekárskiej starostlivosti.",
+            "**1. Predmet.** Beam je komunikačná aplikácia na podporu duševnej pohody a sebapoznania. Poskytuje konverzáciu s jazykovým modelom a krízové kontakty. Nie je to zdravotnícka pomôcka, diagnostický nástroj ani náhrada psychologickej, psychiatrickej alebo lekárskej starostlivosti.",
             "**2. Účet.** Si zodpovedný/á za ochranu svojich prihlasovacích údajov. Musíš mať aspoň 16 rokov. Účet môžeš kedykoľvek zrušiť písomnou žiadosťou na kontakt nižšie.",
             "**3. Prijateľné používanie.** Nepoužívaj Beam na porušovanie práva, obťažovanie ani na rady v oblasti liekov a dávkovania. V prípade akútnej krízy vždy kontaktuj Linku krízy 0800 900 900, IPčko 0800 500 500 alebo 112.",
             "**4. Dostupnosť.** Služba závisí od tretích strán (hosting, AI poskytovateľ) a môže byť dočasne nedostupná. Neručíme za nepretržitú prevádzku.",
             "**5. Obmedzenie zodpovednosti.** Odpovede AI sú generované a nemusia byť správne. Nezodpovedáme za škody vzniknuté spojením na základe obsahu chatu. Ak potrebuješ pomoc, obráť sa na odborníka.",
-            "**6. Zmeny podmienok.** Podmienky môžeme aktualizovať; významné zmeny oznámime v aplikácii. Ďalším používaním platí nová verzia.",
+            "**6. Zmeny podmienok.** Podmienky môžeme aktualizovať; významné zmeny oznímime v aplikácii. Ďalším používaním platí nová verzia.",
             "**Kontakt.** sockagorny@gmail.com",
         ),
     ),
@@ -85,21 +71,15 @@ fun LegalScreen(onBack: () -> Unit) {
             Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
-                .navigationBarsPadding()
-                .padding(20.dp),
+                .padding(horizontal = 16.dp),
         ) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.AutoMirrored.Rounded.ArrowBack, "Späť",
-                    tint = BeamColors.Fog,
-                    modifier = Modifier.size(20.dp).clickable(onClick = onBack),
-                )
-                Spacer(Modifier.weight(1f))
-                MascotBlob(modifier = Modifier.size(24.dp), blobSize = 24.dp)
-            }
+            BeamTopBar(
+                title = "Právne a súkromie",
+                onBack = onBack,
+                mascot = "idle",
+                modifier = Modifier.padding(top = 6.dp),
+            )
 
-            Spacer(Modifier.height(24.dp))
-            Text("Právne a súkromie", fontSize = 24.sp, fontWeight = FontWeight.SemiBold, color = BeamColors.Mist)
             Spacer(Modifier.height(14.dp))
 
             Row(
@@ -109,27 +89,12 @@ fun LegalScreen(onBack: () -> Unit) {
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 LEGAL_DOCS.forEachIndexed { i, d ->
-                    val on = i == selected
-                    Box(
-                        Modifier
-                            .clip(RoundedCornerShape(999.dp))
-                            .background(if (on) BeamColors.Sage else BeamColors.Card)
-                            .border(
-                                1.dp,
-                                if (on) BeamColors.Sage else BeamColors.Line,
-                                RoundedCornerShape(999.dp),
-                            )
-                            .clickable { selected = i }
-                            .padding(horizontal = 14.dp, vertical = 8.dp),
-                    ) {
-                        Text(
-                            d.title,
-                            fontSize = 12.sp,
-                            maxLines = 1,
-                            fontWeight = if (on) FontWeight.SemiBold else FontWeight.Medium,
-                            color = if (on) BeamColors.SageInk else BeamColors.Fog,
-                        )
-                    }
+                    BeamChip(
+                        label = d.title,
+                        onClick = { selected = i },
+                        selected = i == selected,
+                        height = 36.dp,
+                    )
                 }
             }
 
@@ -158,8 +123,7 @@ fun LegalScreen(onBack: () -> Unit) {
     }
 }
 
-/** Renders **bold** spans the same way the web legal pages do. */
-private fun richLegalText(text: String): AnnotatedString = buildAnnotatedString {
+private fun richLegalText(text: String) = buildAnnotatedString {
     val parts = text.split("**")
     parts.forEachIndexed { i, seg ->
         if (seg.isEmpty()) return@forEachIndexed

@@ -6,14 +6,27 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Modifier
 import com.beammental.app.data.Locator
 import com.beammental.app.screens.AuthScreen
 import com.beammental.app.screens.ChatScreen
@@ -23,13 +36,27 @@ import com.beammental.app.screens.OrbLab
 import com.beammental.app.screens.PrehladScreen
 import com.beammental.app.screens.SettingsScreen
 import com.beammental.app.screens.VoiceScreen
+import com.beammental.app.ui.components.BeamNavBar
+import com.beammental.app.ui.components.NavItem
 import com.beammental.app.ui.theme.BeamColors
 import com.beammental.app.ui.theme.BeamTheme
 import com.beammental.app.ui.theme.beamThemeByKey
 import com.beammental.app.voice.DebugVoice
 import kotlinx.coroutines.runBlocking
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Insights
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.rounded.ChatBubble
 
-enum class Screen { Auth, Onboarding, Chat, Prehlad, Legal, Settings }
+enum class Screen { Auth, Onboarding, Chat, Prehlad, Legal, Settings, Voice }
+
+private val NAV_ITEMS = listOf(
+    NavItem("Rozhovor", Icons.Rounded.ChatBubble),
+    NavItem("Prehľad", Icons.Outlined.Insights),
+    NavItem("Nastavenia", Icons.Outlined.Settings),
+)
+
+private val NAV_SCREENS = listOf(Screen.Chat, Screen.Prehlad, Screen.Settings)
 
 class MainActivity : ComponentActivity() {
 
@@ -40,16 +67,11 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // debug builds only: `am start --es debug_screen orb` opens the orb lab
-        // so the volumetric march can be judged on-device without a live call
         if (BuildConfig.DEBUG && intent.getStringExtra("debug_screen") == "orb") {
             setContent { BeamTheme { OrbLab() } }
             return
         }
 
-        // debug builds only: `am start --es debug_screen voice` opens the real
-        // VoiceScreen driven by a scripted session so the redesigned orb UI can
-        // be screenshotted on-device without a live Gemini call
         if (BuildConfig.DEBUG && intent.getStringExtra("debug_screen") == "voice") {
             setContent {
                 BeamTheme {
@@ -62,7 +84,6 @@ class MainActivity : ComponentActivity() {
 
         Locator.init(this)
 
-        // restore session synchronously once, then let the UI drive state
         runBlocking {
             BeamColors.apply(beamThemeByKey(Locator.session.theme()))
             val token = Locator.session.token()
@@ -76,37 +97,63 @@ class MainActivity : ComponentActivity() {
         setContent {
             BeamTheme {
                 val current = screen ?: return@BeamTheme
-                AnimatedContent(
-                    targetState = current,
-                    transitionSpec = {
-                        fadeIn(tween(260)) togetherWith fadeOut(tween(200))
-                    },
-                    label = "nav",
-                ) { s ->
-                    when (s) {
-                        Screen.Auth -> AuthScreen(
-                            onAuthed = { onboarded ->
-                                screen = if (onboarded) Screen.Chat else Screen.Onboarding
+                val showsNav = current in NAV_SCREENS
+                var navIndex by remember { mutableIntStateOf(0) }
+                LaunchedEffect(current) {
+                    val i = NAV_SCREENS.indexOf(current)
+                    if (i >= 0) navIndex = i
+                }
+
+                Column(Modifier.fillMaxSize().background(BeamColors.Ink)) {
+                    Box(Modifier.weight(1f).imePadding()) {
+                        AnimatedContent(
+                            targetState = current,
+                            transitionSpec = {
+                                fadeIn(tween(260)) togetherWith fadeOut(tween(200))
+                            },
+                            label = "nav",
+                        ) { s ->
+                            when (s) {
+                                Screen.Auth -> AuthScreen(
+                                    onAuthed = { onboarded ->
+                                        screen = if (onboarded) Screen.Chat else Screen.Onboarding
+                                    }
+                                )
+                                Screen.Onboarding -> OnboardingScreen(
+                                    onDone = { screen = Screen.Chat }
+                                )
+                                Screen.Chat -> ChatScreen(
+                                    onVoice = { screen = Screen.Voice },
+                                )
+                                Screen.Prehlad -> PrehladScreen(
+                                    onBack = { screen = Screen.Chat },
+                                )
+                                Screen.Legal -> LegalScreen(
+                                    onBack = { screen = Screen.Chat },
+                                )
+                                Screen.Settings -> SettingsScreen(
+                                    onPrehlad = { screen = Screen.Prehlad },
+                                    onLegal = { screen = Screen.Legal },
+                                    onBack = { screen = Screen.Chat },
+                                    onLoggedOut = { screen = Screen.Auth },
+                                )
+                                Screen.Voice -> VoiceScreen(
+                                    onClose = { screen = Screen.Chat },
+                                )
                             }
-                        )
-                        Screen.Onboarding -> OnboardingScreen(
-                            onDone = { screen = Screen.Chat }
-                        )
-                        Screen.Chat -> ChatScreen(
-                            onPrehlad = { screen = Screen.Prehlad },
-                            onSettings = { screen = Screen.Settings },
-                        )
-                        Screen.Prehlad -> PrehladScreen(
-                            onBack = { screen = Screen.Chat },
-                        )
-                        Screen.Legal -> LegalScreen(
-                            onBack = { screen = Screen.Chat },
-                        )
-                        Screen.Settings -> SettingsScreen(
-                            onPrehlad = { screen = Screen.Prehlad },
-                            onLegal = { screen = Screen.Legal },
-                            onBack = { screen = Screen.Chat },
-                            onLoggedOut = { screen = Screen.Auth },
+                        }
+                    }
+
+                    AnimatedVisibility(
+                        visible = showsNav,
+                        enter = fadeIn(tween(220)) + slideInVertically(tween(260)) { it / 3 },
+                        exit = fadeOut(tween(160)) + slideOutVertically(tween(200)) { it / 3 },
+                    ) {
+                        BeamNavBar(
+                            items = NAV_ITEMS,
+                            selectedIndex = navIndex,
+                            onSelect = { screen = NAV_SCREENS[it] },
+                            modifier = Modifier.navigationBarsPadding(),
                         )
                     }
                 }

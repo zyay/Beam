@@ -13,8 +13,6 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -26,7 +24,6 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.BatteryAlert
 import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.SelfImprovement
 import androidx.compose.material.icons.rounded.SentimentNeutral
 import androidx.compose.material.icons.rounded.SentimentSatisfied
 import androidx.compose.material.icons.rounded.SentimentVeryDissatisfied
@@ -45,6 +42,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.beammental.app.data.Locator
+import com.beammental.app.ui.components.BeamButton
+import com.beammental.app.ui.components.BeamIconButton
+import com.beammental.app.ui.components.BeamTextField
 import com.beammental.app.ui.effects.MascotBlob
 import com.beammental.app.ui.effects.MeshBackground
 import com.beammental.app.ui.theme.BeamColors
@@ -146,15 +146,14 @@ fun OnboardingScreen(onDone: () -> Unit) {
 
     Box(Modifier.fillMaxSize().background(BeamColors.Ink)) {
         MeshBackground(Modifier.matchParentSize(), intensity = 0.8f)
-        Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding().padding(20.dp)) {
+        Column(Modifier.fillMaxSize().statusBarsPadding().imePadding().padding(20.dp)) {
         Spacer(Modifier.height(10.dp))
-        // progress beam
         Box(Modifier.fillMaxWidth().height(4.dp).background(Color.White.copy(alpha = 0.06f), RoundedCornerShape(2.dp))) {
             Box(
                 Modifier
                     .fillMaxWidth(progress)
                     .fillMaxHeight()
-                    .background(BeamColors.Sage, RoundedCornerShape(2.dp)),
+                    .background(BeamColors.Accent, RoundedCornerShape(2.dp)),
             )
         }
         Row(
@@ -186,12 +185,12 @@ fun OnboardingScreen(onDone: () -> Unit) {
                     when (s) {
                         0 -> StepShell("Ahoj.", "Teší nás. Pár otázok a Beam si prispôsobíme tebe — tvojmu dňu, tvojmu tempu, tvojmu svetu. Trvá to dve minúty.\n\nAko ti máme hovoriť?") {
                             StaggerIn(0) {
-                                OutlinedTextField(
-                                    value = name, onValueChange = { name = it },
-                                    placeholder = { Text("Tvoje meno alebo prezývka", color = BeamColors.Fog) },
+                                BeamTextField(
+                                    value = name,
+                                    onValueChange = { name = it },
+                                    placeholder = "Tvoje meno alebo prezývka",
                                     singleLine = true,
                                     shape = RoundedCornerShape(14.dp),
-                                    colors = fieldColors(),
                                     modifier = Modifier.fillMaxWidth(),
                                 )
                             }
@@ -260,12 +259,12 @@ fun OnboardingScreen(onDone: () -> Unit) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(Icons.Rounded.Snooze, null, tint = BeamColors.Fog)
                                     Spacer(Modifier.width(8.dp))
-                                    OutlinedTextField(
-                                        value = time, onValueChange = { time = it },
-                                        placeholder = { Text("napr. 20:00", color = BeamColors.Fog) },
+                                    BeamTextField(
+                                        value = time,
+                                        onValueChange = { time = it },
+                                        placeholder = "napr. 20:00",
                                         singleLine = true,
                                         shape = RoundedCornerShape(14.dp),
-                                        colors = fieldColors(),
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                         modifier = Modifier.width(160.dp),
                                     )
@@ -314,8 +313,8 @@ fun OnboardingScreen(onDone: () -> Unit) {
                                     checked = ack,
                                     onCheckedChange = { ack = it },
                                     colors = CheckboxDefaults.colors(
-                                        checkedColor = BeamColors.Sage,
-                                        checkmarkColor = BeamColors.SageInk,
+                                        checkedColor = BeamColors.Accent,
+                                        checkmarkColor = BeamColors.AccentInk,
                                         uncheckedColor = BeamColors.Fog,
                                     ),
                                 )
@@ -333,63 +332,24 @@ fun OnboardingScreen(onDone: () -> Unit) {
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             if (step > 0) {
-                val backInteraction = remember { MutableInteractionSource() }
-                val backPressed by backInteraction.collectIsPressedAsState()
-                val backScale by animateFloatAsState(if (backPressed) 0.93f else 1f, spring(dampingRatio = 0.6f))
-                Box(
-                    Modifier
-                        .weight(0.28f)
-                        .height(50.dp)
-                        .graphicsLayer {
-                            scaleX = backScale
-                            scaleY = backScale
-                        }
-                        .background(Color.Transparent, RoundedCornerShape(14.dp))
-                        .border(1.dp, BeamColors.Line, RoundedCornerShape(14.dp))
-                        .clickable(interactionSource = backInteraction, indication = null) { step-- },
-                    contentAlignment = Alignment.Center,
-                ) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, null, tint = BeamColors.Fog) }
+                BeamIconButton(
+                    icon = Icons.AutoMirrored.Rounded.ArrowBack,
+                    contentDescription = "Späť",
+                    onClick = { step-- },
+                )
             }
-            val nextInteraction = remember { MutableInteractionSource() }
-            val nextPressed by nextInteraction.collectIsPressedAsState()
-            val nextScale by animateFloatAsState(if (nextPressed) 0.96f else 1f, spring(dampingRatio = 0.6f))
-            Box(
-                Modifier
-                    .weight(if (step > 0) 0.72f else 1f)
-                    .height(50.dp)
-                    .graphicsLayer {
-                        scaleX = nextScale
-                        scaleY = nextScale
-                    }
-                    .clickable(interactionSource = nextInteraction, indication = null, enabled = canNext && !saving) {
-                        if (step < TOTAL_STEPS - 1) step++ else finish()
-                    },
-            ) {
-                Box(
-                    Modifier
-                        .fillMaxSize()
-                        .background(
-                            if (canNext) BeamColors.Sage else BeamColors.Sage.copy(alpha = 0.4f),
-                            RoundedCornerShape(16.dp),
-                        ),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            when {
-                                saving -> "Ukladám…"
-                                step < TOTAL_STEPS - 1 -> "Ďalej"
-                                else -> "Začať si písať"
-                            },
-                            color = BeamColors.SageInk, fontWeight = FontWeight.SemiBold, fontSize = 15.sp,
-                        )
-                        if (!saving) {
-                            Spacer(Modifier.width(6.dp))
-                            Icon(Icons.AutoMirrored.Rounded.ArrowForward, null, tint = BeamColors.SageInk, modifier = Modifier.size(17.dp))
-                        }
-                    }
-                }
-            }
+            BeamButton(
+                label = when {
+                    saving -> "Ukladám…"
+                    step < TOTAL_STEPS - 1 -> "Ďalej"
+                    else -> "Začať si písať"
+                },
+                onClick = { if (step < TOTAL_STEPS - 1) step++ else finish() },
+                enabled = canNext && !saving,
+                busy = saving,
+                icon = Icons.AutoMirrored.Rounded.ArrowForward,
+                modifier = Modifier.weight(1f),
+            )
         }
         }
     }
@@ -406,7 +366,6 @@ private fun StepShell(title: String, sub: String, content: @Composable () -> Uni
     }
 }
 
-/** Entrance animation: content fades in and slides up, staggered by index. */
 @Composable
 private fun StaggerIn(index: Int, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     val appear = remember { Animatable(0f) }
@@ -435,8 +394,8 @@ private fun MoodCard(icon: ImageVector, label: String, active: Boolean, onClick:
                 scaleX = scale
                 scaleY = scale
             }
-            .background(if (active) BeamColors.Sage.copy(alpha = 0.16f) else BeamColors.Card, RoundedCornerShape(16.dp))
-            .border(1.dp, if (active) BeamColors.Sage.copy(alpha = 0.55f) else BeamColors.Line, RoundedCornerShape(16.dp))
+            .background(if (active) BeamColors.Accent.copy(alpha = 0.16f) else BeamColors.Card, RoundedCornerShape(16.dp))
+            .border(1.dp, if (active) BeamColors.Accent.copy(alpha = 0.55f) else BeamColors.Line, RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
             .padding(vertical = 18.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -449,7 +408,6 @@ private fun MoodCard(icon: ImageVector, label: String, active: Boolean, onClick:
 
 @Composable
 private fun ChipFlow(options: List<String>, selected: Set<String>, onToggle: (Set<String>) -> Unit) {
-    // simple two-per-row flow
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         options.chunked(2).forEachIndexed { row, pair ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -482,15 +440,6 @@ private fun ChipFlow(options: List<String>, selected: Set<String>, onToggle: (Se
 
 @Composable
 private fun Modifier.chipBg(active: Boolean): Modifier = this.background(
-    if (active) BeamColors.Sage.copy(alpha = 0.14f) else BeamColors.Card,
+    if (active) BeamColors.Accent.copy(alpha = 0.14f) else BeamColors.Card,
     RoundedCornerShape(999.dp),
-).border(1.dp, if (active) BeamColors.Sage.copy(alpha = 0.55f) else BeamColors.Line, RoundedCornerShape(999.dp))
-
-@Composable
-private fun fieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor = BeamColors.Sage,
-    unfocusedBorderColor = BeamColors.Line,
-    focusedContainerColor = BeamColors.Ink2,
-    unfocusedContainerColor = BeamColors.Ink2,
-    cursorColor = BeamColors.Sage,
-)
+).border(1.dp, if (active) BeamColors.Accent.copy(alpha = 0.55f) else BeamColors.Line, RoundedCornerShape(999.dp))

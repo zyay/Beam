@@ -76,7 +76,7 @@ fun UpdateBanner(
         Icon(
             if (mismatch) Icons.Rounded.Warning else Icons.Rounded.SystemUpdate,
             null,
-            tint = if (mismatch) Color(0xFFFFC4CB) else BeamColors.Sage,
+            tint = if (mismatch) Color(0xFFFFC4CB) else BeamColors.Accent,
             modifier = Modifier.size(22.dp),
         )
         Spacer(Modifier.width(11.dp))
@@ -90,7 +90,7 @@ fun UpdateBanner(
                 Spacer(Modifier.height(7.dp))
                 LinearProgressIndicator(
                     progress = { state.progress },
-                    color = BeamColors.Sage,
+                    color = BeamColors.Accent,
                     trackColor = BeamColors.Line,
                     modifier = Modifier.fillMaxWidth().height(4.dp),
                 )
@@ -118,7 +118,7 @@ fun UpdateBanner(
             Box(
                 Modifier
                     .background(
-                        if (sageBg) BeamColors.Sage else BeamColors.Sage.copy(alpha = 0.14f),
+                        if (sageBg) BeamColors.Accent else BeamColors.Accent.copy(alpha = 0.14f),
                         RoundedCornerShape(999.dp),
                     )
                     .clickable(onClick = action)
@@ -126,7 +126,7 @@ fun UpdateBanner(
             ) {
                 Text(
                     label,
-                    color = if (sageBg) BeamColors.SageInk else BeamColors.Sage,
+                    color = if (sageBg) BeamColors.AccentInk else BeamColors.Accent,
                     fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
                 )
             }
@@ -136,18 +136,25 @@ fun UpdateBanner(
             Spacer(Modifier.width(10.dp))
             Box(
                 Modifier
-                    .background(BeamColors.Sage.copy(alpha = 0.14f), RoundedCornerShape(999.dp))
+                    .background(BeamColors.Accent.copy(alpha = 0.14f), RoundedCornerShape(999.dp))
                     .clickable { onInstall(state.file) }
                     .padding(horizontal = 14.dp, vertical = 8.dp),
             ) {
-                Text("Skúsiť nainštalovať", color = BeamColors.Sage, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                Text("Skúsiť nainštalovať", color = BeamColors.Accent, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
             }
         }
         Spacer(Modifier.width(6.dp))
-        Icon(
-            Icons.Rounded.Close, "Zavrieť",
-            tint = BeamColors.Fog,
-            modifier = Modifier.size(16.dp).clickable(onClick = onDismiss),
-        )
+        Box(
+            Modifier
+                .size(48.dp)
+                .clickable(onClick = onDismiss),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                Icons.Rounded.Close, "Zavrieť",
+                tint = BeamColors.Fog,
+                modifier = Modifier.size(16.dp),
+            )
+        }
     }
 }

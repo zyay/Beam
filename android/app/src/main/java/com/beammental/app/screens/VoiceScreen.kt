@@ -14,6 +14,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -44,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.beammental.app.BuildConfig
+import com.beammental.app.ui.components.CrisisCard
 import com.beammental.app.ui.effects.MeshBackground
 import com.beammental.app.ui.effects.OrbState
 import com.beammental.app.ui.effects.OrbStage
@@ -183,7 +185,7 @@ fun VoiceScreen(onClose: () -> Unit, preview: VoiceSession? = null) {
                         modifier = Modifier.size(340.dp),
                         state = orbState,
                         level = ring,
-                        accent = if (phase == VoicePhase.SPEAKING) BeamColors.Sage else Color(0xFFC3CBFF),
+                        accent = if (phase == VoicePhase.SPEAKING) BeamColors.Accent else Color(0xFFC3CBFF),
                     )
 
                     Spacer(Modifier.height(30.dp))
@@ -307,7 +309,7 @@ fun VoiceScreen(onClose: () -> Unit, preview: VoiceSession? = null) {
                             }
                             .background(BeamColors.Card, RoundedCornerShape(18.dp))
                             .border(1.dp, BeamColors.Line, RoundedCornerShape(18.dp))
-                            .clickable(interactionSource = interaction, indication = null) {
+                            .clickable(interactionSource = interaction, indication = LocalIndication.current) {
                                 v?.stop()
                                 onClose()
                             }
@@ -379,12 +381,12 @@ private fun MicPermissionNotice(onRequest: () -> Unit) {
         Spacer(Modifier.height(24.dp))
         Box(
             Modifier
-                .background(BeamColors.Sage, RoundedCornerShape(999.dp))
+                .background(BeamColors.Accent, RoundedCornerShape(999.dp))
                 .clickable(onClick = onRequest)
                 .padding(horizontal = 30.dp, vertical = 13.dp),
             contentAlignment = Alignment.Center,
         ) {
-            Text("Povoliť mikrofón", color = BeamColors.SageInk, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+            Text("Povoliť mikrofón", color = BeamColors.AccentInk, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
         }
     }
 }
@@ -419,7 +421,7 @@ private fun LiveDot() {
         Modifier
             .size(8.dp)
             .graphicsLayer { this.alpha = alpha }
-            .background(BeamColors.Sage, CircleShape),
+            .background(BeamColors.Accent, CircleShape),
     )
 }
 
@@ -444,7 +446,7 @@ private fun CircleControl(
                 .graphicsLayer { scaleX = scale; scaleY = scale }
                 .background(background, CircleShape)
                 .border(1.dp, borderColor, CircleShape)
-                .clickable(interactionSource = interaction, indication = null, onClick = onClick),
+                .clickable(interactionSource = interaction, indication = LocalIndication.current, onClick = onClick),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -475,7 +477,7 @@ private fun FailedNotice(reason: String, onRetry: () -> Unit) {
                 .border(1.dp, BeamColors.Line, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
-            Text("!", color = BeamColors.Sage, fontSize = 32.sp, fontWeight = FontWeight.SemiBold)
+            Text("!", color = BeamColors.Accent, fontSize = 32.sp, fontWeight = FontWeight.SemiBold)
         }
         Spacer(Modifier.height(18.dp))
         Text(
@@ -491,12 +493,12 @@ private fun FailedNotice(reason: String, onRetry: () -> Unit) {
         Spacer(Modifier.height(22.dp))
         Box(
             Modifier
-                .background(BeamColors.Sage, RoundedCornerShape(999.dp))
+                .background(BeamColors.Accent, RoundedCornerShape(999.dp))
                 .clickable(onClick = onRetry)
                 .padding(horizontal = 30.dp, vertical = 13.dp),
             contentAlignment = Alignment.Center,
         ) {
-            Text("Skúsiť znova", color = BeamColors.SageInk, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+            Text("Skúsiť znova", color = BeamColors.AccentInk, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
         }
     }
 }

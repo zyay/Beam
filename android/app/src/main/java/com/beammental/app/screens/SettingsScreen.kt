@@ -1,7 +1,5 @@
 package com.beammental.app.screens
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -10,15 +8,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.outlined.Description
-import androidx.compose.material.icons.outlined.Badge
-import androidx.compose.material.icons.outlined.Call
 import androidx.compose.material.icons.outlined.Insights
-import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.SystemUpdate
-import androidx.compose.material.icons.rounded.Logout
-import androidx.compose.material.icons.rounded.Phone
+import androidx.compose.material.icons.automirrored.rounded.Logout
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -32,7 +25,7 @@ import com.beammental.app.BuildConfig
 import com.beammental.app.data.Locator
 import com.beammental.app.data.Updater
 import com.beammental.app.data.UpdateUi
-import com.beammental.app.ui.effects.MascotBlob
+import com.beammental.app.ui.components.*
 import com.beammental.app.ui.effects.MeshBackground
 import com.beammental.app.ui.theme.BEAM_THEMES
 import com.beammental.app.ui.theme.BeamColors
@@ -54,292 +47,225 @@ fun SettingsScreen(onPrehlad: () -> Unit, onLegal: () -> Unit, onBack: () -> Uni
             Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
-                .navigationBarsPadding()
                 .imePadding()
-                .verticalScroll(rememberScrollState())
-                .padding(20.dp),
+                .verticalScroll(rememberScrollState()),
         ) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                Icons.AutoMirrored.Rounded.ArrowBack, "Späť",
-                tint = BeamColors.Fog,
-                modifier = Modifier.size(20.dp).clickable(onClick = onBack),
+            BeamTopBar(
+                title = "Nastavenia",
+                onBack = onBack,
+                mascot = "idle",
+                modifier = Modifier.padding(horizontal = 10.dp),
             )
-            Spacer(Modifier.weight(1f))
-            MascotBlob(modifier = Modifier.size(24.dp), blobSize = 24.dp)
-        }
 
-        Spacer(Modifier.height(24.dp))
-        Text("Nastavenia", fontSize = 24.sp, fontWeight = FontWeight.SemiBold, color = BeamColors.Mist)
+            Column(Modifier.padding(horizontal = 16.dp)) {
 
-        SectionLabel(Icons.Outlined.Badge, "Účet")
-        Column(Modifier.fillMaxWidth().border(1.dp, BeamColors.Line, RoundedCornerShape(20.dp)).background(BeamColors.Card, RoundedCornerShape(20.dp)).padding(18.dp)) {
-            OutlinedTextField(
-                value = name, onValueChange = { name = it },
-                placeholder = { Text("Meno", color = BeamColors.Fog) },
-                singleLine = true,
-                shape = RoundedCornerShape(14.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = BeamColors.Sage,
-                    unfocusedBorderColor = BeamColors.Line,
-                    focusedContainerColor = BeamColors.Ink2,
-                    unfocusedContainerColor = BeamColors.Ink2,
-                    cursorColor = BeamColors.Sage,
-                ),
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(Modifier.height(12.dp))
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .height(44.dp)
-                    .border(1.dp, BeamColors.Line, RoundedCornerShape(14.dp))
-                    .clickable(enabled = !saving) {
-                        saving = true
-                        scope.launch {
-                            Locator.api.saveName(name.trim())
-                            saving = false
-                            saved = true
-                        }
-                    },
-            ) {
-                Box(
-                    Modifier
-                        .fillMaxSize()
-                        .background(BeamColors.Sage, RoundedCornerShape(14.dp)),
-                    contentAlignment = Alignment.Center,
+                BeamSectionLabel("Účet", modifier = Modifier.padding(start = 4.dp, top = 20.dp, bottom = 8.dp))
+                BeamSurface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    contentPadding = PaddingValues(18.dp),
                 ) {
-                    Text(
-                        if (saved) "Uložené" else if (saving) "Ukladám…" else "Uložiť",
-                        color = BeamColors.SageInk, fontWeight = FontWeight.SemiBold, fontSize = 14.sp,
+                    BeamTextField(
+                        value = name,
+                        onValueChange = { name = it; saved = false },
+                        placeholder = "Meno",
+                        singleLine = true,
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier.fillMaxWidth(),
                     )
-                }
-            }
-        }
-
-        SectionLabel(Icons.Outlined.Insights, "Prehľad")
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .border(1.dp, BeamColors.Line, RoundedCornerShape(20.dp))
-                .background(BeamColors.Card, RoundedCornerShape(20.dp))
-                .clickable(onClick = onPrehlad)
-                .padding(16.dp),
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Outlined.Insights, null,
-                    tint = BeamColors.Sage, modifier = Modifier.size(18.dp),
-                )
-                Spacer(Modifier.width(12.dp))
-                Column {
-                    Text(
-                        "Záznamy nálady",
-                        color = BeamColors.Mist, fontSize = 14.sp, fontWeight = FontWeight.Medium,
-                    )
-                    Text(
-                        "Denný check-in a vývoj za 30 dní",
-                        color = BeamColors.Fog, fontSize = 12.sp,
-                    )
-                }
-            }
-        }
-
-        Spacer(Modifier.height(22.dp))
-        SectionLabel(Icons.Outlined.Palette, "Motív")
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .border(1.dp, BeamColors.Line, RoundedCornerShape(20.dp))
-                .background(BeamColors.Card, RoundedCornerShape(20.dp))
-                .padding(14.dp),
-        ) {
-            BEAM_THEMES.chunked(2).forEach { rowThemes ->
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    rowThemes.forEach { theme ->
-                        val active = BeamColors.current.key == theme.key
-                        Column(
-                            Modifier
-                                .weight(1f)
-                                .background(
-                                    if (active) theme.accent.copy(alpha = 0.14f) else BeamColors.Ink2,
-                                    RoundedCornerShape(14.dp),
-                                )
-                                .border(
-                                    1.dp,
-                                    if (active) theme.accent.copy(alpha = 0.55f) else BeamColors.Line,
-                                    RoundedCornerShape(14.dp),
-                                )
-                                .clickable {
-                                    BeamColors.apply(theme)
-                                    scope.launch { Locator.session.setTheme(theme.key) }
-                                }
-                                .padding(12.dp),
-                        ) {
-                            Row {
-                                theme.wave.forEach { c ->
-                                    Box(
-                                        Modifier
-                                            .size(16.dp)
-                                            .background(c, RoundedCornerShape(5.dp))
-                                    )
-                                    Spacer(Modifier.width(5.dp))
-                                }
+                    Spacer(Modifier.height(12.dp))
+                    BeamButton(
+                        label = if (saved) "Uložené" else if (saving) "Ukladám…" else "Uložiť",
+                        onClick = {
+                            saving = true
+                            scope.launch {
+                                Locator.api.saveName(name.trim())
+                                saving = false
+                                saved = true
                             }
-                            Spacer(Modifier.height(9.dp))
+                        },
+                        enabled = !saving,
+                        busy = saving,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+
+                BeamSectionLabel("Prehľad", modifier = Modifier.padding(start = 4.dp, top = 20.dp, bottom = 8.dp))
+                BeamSurface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    contentPadding = PaddingValues(16.dp),
+                    onClick = onPrehlad,
+                    onClickLabel = "Záznamy nálady",
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Outlined.Insights, null,
+                            tint = BeamColors.Accent, modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Column {
                             Text(
-                                theme.label,
-                                color = if (active) BeamColors.Mist else BeamColors.Fog,
-                                fontSize = 14.sp,
-                                fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
+                                "Záznamy nálady",
+                                color = BeamColors.Mist,
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Medium,
+                            )
+                            Text(
+                                "Denný check-in a vývoj za 30 dní",
+                                color = BeamColors.Fog,
+                                style = MaterialTheme.typography.bodySmall,
                             )
                         }
                     }
-                    if (rowThemes.size == 1) Spacer(Modifier.weight(1f))
                 }
-                Spacer(Modifier.height(10.dp))
-            }
-        }
 
-        SectionLabel(Icons.Outlined.SystemUpdate, "Aktualizácie")
-        UpdateCard(ctx = ctx)
-
-        SectionLabel(Icons.Outlined.Call, "Krízové linky")
-        Column(Modifier.fillMaxWidth().border(1.dp, BeamColors.Line, RoundedCornerShape(20.dp)).background(BeamColors.Card, RoundedCornerShape(20.dp))) {
-            listOf(
-                "0800 900 900" to "Linka krízy · nonstop",
-                "0800 500 500" to "IPčko · nonstop",
-                "112" to "Tiesňové volanie",
-            ).forEach { (number, label) ->
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .clickable { ctx.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$number"))) }
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                Spacer(Modifier.height(22.dp))
+                BeamSectionLabel("Motív", modifier = Modifier.padding(start = 4.dp, top = 0.dp, bottom = 8.dp))
+                BeamSurface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    contentPadding = PaddingValues(14.dp),
                 ) {
-                    Icon(Icons.Rounded.Phone, null, tint = BeamColors.Mist, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(12.dp))
-                    Text("$label · ", color = BeamColors.Mist, fontSize = 15.sp)
-                    Text(number, color = BeamColors.Mist, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                }
-                HorizontalDivider(color = BeamColors.Line, thickness = 1.dp)
-            }
-        }
-
-        SectionLabel(Icons.Outlined.Description, "Právne")
-        Column(Modifier.fillMaxWidth().border(1.dp, BeamColors.Line, RoundedCornerShape(20.dp)).background(BeamColors.Card, RoundedCornerShape(20.dp))) {
-            listOf(
-                "Ochrana súkromia",
-                "Všeobecné podmienky",
-                "Zdravotný disclaimer",
-            ).forEach { label ->
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .clickable(onClick = onLegal)
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
-                ) {
-                    Icon(Icons.Outlined.Description, null, tint = BeamColors.Fog, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(12.dp))
-                    Text(label, color = BeamColors.Mist, fontSize = 15.sp)
-                }
-                HorizontalDivider(color = BeamColors.Line, thickness = 1.dp)
-            }
-        }
-
-        Spacer(Modifier.height(24.dp))
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .height(48.dp)
-                .background(BeamColors.Card, RoundedCornerShape(14.dp))
-                .clickable {
-                    scope.launch {
-                        Locator.session.clear()
-                        onLoggedOut()
+                    BEAM_THEMES.chunked(2).forEach { rowThemes ->
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            rowThemes.forEach { theme ->
+                                val active = BeamColors.current.key == theme.key
+                                Column(
+                                    Modifier
+                                        .weight(1f)
+                                        .background(
+                                            if (active) theme.accent.copy(alpha = 0.14f) else BeamColors.Ink2,
+                                            RoundedCornerShape(14.dp),
+                                        )
+                                        .border(
+                                            1.dp,
+                                            if (active) theme.accent.copy(alpha = 0.55f) else BeamColors.Line,
+                                            RoundedCornerShape(14.dp),
+                                        )
+                                        .clickable {
+                                            BeamColors.apply(theme)
+                                            scope.launch { Locator.session.setTheme(theme.key) }
+                                        }
+                                        .padding(12.dp),
+                                ) {
+                                    Row {
+                                        theme.wave.forEach { c ->
+                                            Box(
+                                                Modifier
+                                                    .size(16.dp)
+                                                    .background(c, RoundedCornerShape(5.dp)),
+                                            )
+                                            Spacer(Modifier.width(5.dp))
+                                        }
+                                    }
+                                    Spacer(Modifier.height(9.dp))
+                                    Text(
+                                        theme.label,
+                                        color = if (active) BeamColors.Mist else BeamColors.Fog,
+                                        fontSize = 14.sp,
+                                        fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
+                                    )
+                                }
+                            }
+                            if (rowThemes.size == 1) Spacer(Modifier.weight(1f))
+                        }
+                        Spacer(Modifier.height(10.dp))
                     }
-                },
-            contentAlignment = Alignment.Center,
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Rounded.Logout, null, tint = BeamColors.Fog, modifier = Modifier.size(17.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("Odhlásiť sa", color = BeamColors.Fog, fontSize = 15.sp)
+                }
+
+                BeamSectionLabel("Aktualizácie", modifier = Modifier.padding(start = 4.dp, top = 20.dp, bottom = 8.dp))
+                UpdateCard(ctx = ctx)
+
+                BeamSectionLabel("Krízové linky", modifier = Modifier.padding(start = 4.dp, top = 20.dp, bottom = 8.dp))
+                CrisisList()
+
+                BeamSectionLabel("Právne", modifier = Modifier.padding(start = 4.dp, top = 20.dp, bottom = 8.dp))
+                BeamSurface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    contentPadding = PaddingValues(0.dp),
+                ) {
+                    listOf(
+                        "Ochrana súkromia",
+                        "Všeobecné podmienky",
+                        "Zdravotný disclaimer",
+                    ).forEachIndexed { index, label ->
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .defaultMinSize(minHeight = 48.dp)
+                                .clickable(onClick = onLegal)
+                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                        ) {
+                            Icon(Icons.Outlined.Description, null, tint = BeamColors.Fog, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(12.dp))
+                            Text(label, color = BeamColors.Mist, fontSize = 15.sp)
+                        }
+                        if (index < 2) BeamDivider(color = BeamColors.Line.copy(alpha = 0.6f), modifier = Modifier.padding(horizontal = 14.dp))
+                    }
+                }
+
+                Spacer(Modifier.height(24.dp))
+                BeamButton(
+                    label = "Odhlásiť sa",
+                    onClick = {
+                        scope.launch {
+                            Locator.session.clear()
+                            onLoggedOut()
+                        }
+                    },
+                    kind = BeamButtonKind.Ghost,
+                    icon = Icons.AutoMirrored.Rounded.Logout,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(24.dp))
             }
         }
-        Spacer(Modifier.height(24.dp))
-    }
     }
 }
 
-@Composable
-private fun SectionLabel(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String) {
-    Row(Modifier.padding(start = 4.dp, top = 20.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-        Icon(icon, null, tint = BeamColors.Fog, modifier = Modifier.size(15.dp))
-        Spacer(Modifier.width(8.dp))
-        Text(text, color = BeamColors.Fog, fontSize = 13.sp, fontWeight = FontWeight.Medium)
-    }
-    Spacer(Modifier.height(0.dp))
-}
-
-/** Live "Aktualizácie" card. Subscribes to the Updater state flow, exposes
- *  manual check + force-download-over-mobile, and tells the user clearly
- *  when the new APK has a different signature (in which case the install
- *  has to happen via uninstall + reinstall, not in-place). */
 @Composable
 private fun UpdateCard(ctx: android.content.Context) {
     val state by Updater.state.collectAsState()
     val s = state
     val currentVer = "Beam ${BuildConfig.VERSION_NAME}"
 
-    // A Play-Store install may not self-update (Play policy). Show a calm
-    // placeholder instead of an updater that can never run there.
     if (Updater.installedFromPlay(ctx)) {
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .border(1.dp, BeamColors.Line, RoundedCornerShape(20.dp))
-                .background(BeamColors.Card, RoundedCornerShape(20.dp))
-                .padding(horizontal = 16.dp, vertical = 14.dp),
+        BeamSurface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Outlined.SystemUpdate, null,
-                    tint = BeamColors.Fog, modifier = Modifier.size(16.dp),
-                )
+                Icon(Icons.Outlined.SystemUpdate, null, tint = BeamColors.Fog, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(12.dp))
                 Text("Nainštalovaná verzia", color = BeamColors.Mist, fontSize = 14.sp)
                 Spacer(Modifier.weight(1f))
                 Text(currentVer, color = BeamColors.Fog, fontSize = 13.sp, fontWeight = FontWeight.Medium)
             }
             Spacer(Modifier.height(10.dp))
-            HorizontalDivider(color = BeamColors.Line, thickness = 1.dp)
+            BeamDivider(color = BeamColors.Line)
             Spacer(Modifier.height(12.dp))
             Text("Aktualizácie spravuje Google Play.", color = BeamColors.Fog, fontSize = 13.sp, lineHeight = 18.sp)
         }
         return
     }
 
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .border(1.dp, BeamColors.Line, RoundedCornerShape(20.dp))
-            .background(BeamColors.Card, RoundedCornerShape(20.dp))
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+    BeamSurface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                Icons.Outlined.SystemUpdate, null,
-                tint = BeamColors.Fog, modifier = Modifier.size(16.dp),
-            )
+            Icon(Icons.Outlined.SystemUpdate, null, tint = BeamColors.Fog, modifier = Modifier.size(16.dp))
             Spacer(Modifier.width(12.dp))
             Text("Nainštalovaná verzia", color = BeamColors.Mist, fontSize = 14.sp)
             Spacer(Modifier.weight(1f))
             Text(currentVer, color = BeamColors.Fog, fontSize = 13.sp, fontWeight = FontWeight.Medium)
         }
         Spacer(Modifier.height(10.dp))
-        HorizontalDivider(color = BeamColors.Line, thickness = 1.dp)
+        BeamDivider(color = BeamColors.Line)
         Spacer(Modifier.height(12.dp))
 
         when (s) {
@@ -350,53 +276,31 @@ private fun UpdateCard(ctx: android.content.Context) {
                 )
                 Spacer(Modifier.height(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    PillAction("Skontrolovať", BeamColors.Sage) {
-                        Updater.checkAndMaybeStart(ctx)
-                    }
-                    PillAction("Stiahnuť cez mobilné dáta", BeamColors.Sage.copy(alpha = 0.14f), BeamColors.Sage) {
-                        Updater.checkAndMaybeStart(ctx, allowMetered = true)
-                    }
+                    BeamChip(label = "Skontrolovať", onClick = { Updater.checkAndMaybeStart(ctx) })
+                    BeamChip(label = "Cez mobilné dáta", onClick = { Updater.checkAndMaybeStart(ctx, allowMetered = true) })
                 }
             }
             is UpdateUi.Available -> {
-                Text(
-                    "K dispozícii je verzia ${s.info.versionName}.",
-                    color = BeamColors.Mist, fontSize = 14.sp, fontWeight = FontWeight.Medium,
-                )
+                Text("K dispozícii je verzia ${s.info.versionName}.", color = BeamColors.Mist, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                 Spacer(Modifier.height(4.dp))
-                Text(
-                    "Stiahne sa sama na Wi-Fi — alebo môžeš hneď teraz.",
-                    color = BeamColors.Fog, fontSize = 13.sp,
-                )
+                Text("Stiahne sa sama na Wi-Fi — alebo môžeš hneď teraz.", color = BeamColors.Fog, fontSize = 13.sp)
                 Spacer(Modifier.height(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    PillAction("Stiahnuť", BeamColors.Sage) { Updater.startDownload(ctx, s.info) }
-                    PillAction("Hneď (mobilné dáta)", BeamColors.Sage.copy(alpha = 0.14f), BeamColors.Sage) {
-                        Updater.startDownload(ctx, s.info)
-                    }
+                    BeamChip(label = "Stiahnuť", onClick = { Updater.startDownload(ctx, s.info) }, selected = true)
+                    BeamChip(label = "Hneď (mobilné dáta)", onClick = { Updater.startDownload(ctx, s.info) })
                 }
             }
             is UpdateUi.WaitingWifi -> {
-                Text(
-                    "Verzia ${s.info.versionName} — čaká sa na Wi-Fi.",
-                    color = BeamColors.Mist, fontSize = 14.sp, fontWeight = FontWeight.Medium,
-                )
+                Text("Verzia ${s.info.versionName} — čaká sa na Wi-Fi.", color = BeamColors.Mist, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                 Spacer(Modifier.height(12.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    PillAction("Stiahnuť cez mobilné dáta", BeamColors.Sage) {
-                        Updater.startDownload(ctx, s.info)
-                    }
-                }
+                BeamChip(label = "Stiahnuť cez mobilné dáta", onClick = { Updater.startDownload(ctx, s.info) })
             }
             is UpdateUi.Downloading -> {
-                Text(
-                    "Sťahujem verziu ${s.info.versionName}…",
-                    color = BeamColors.Mist, fontSize = 14.sp, fontWeight = FontWeight.Medium,
-                )
+                Text("Sťahujem verziu ${s.info.versionName}…", color = BeamColors.Mist, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                 Spacer(Modifier.height(8.dp))
                 LinearProgressIndicator(
                     progress = { s.progress },
-                    color = BeamColors.Sage,
+                    color = BeamColors.Accent,
                     trackColor = BeamColors.Line,
                     modifier = Modifier.fillMaxWidth().height(4.dp),
                 )
@@ -406,25 +310,16 @@ private fun UpdateCard(ctx: android.content.Context) {
             is UpdateUi.Ready -> {
                 val mismatch = !s.canInstallOver
                 if (mismatch) {
-                    Text(
-                        "Verzia ${s.info.versionName} je stiahnutá.",
-                        color = BeamColors.Mist, fontSize = 14.sp, fontWeight = FontWeight.Medium,
-                    )
+                    Text("Verzia ${s.info.versionName} je stiahnutá.", color = BeamColors.Mist, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                     Spacer(Modifier.height(4.dp))
                     Text(
                         "Túto verziu nemožno nainštalovať ako aktualizáciu — má iný podpis. Odinštaluj starú Beam a nainštaluj novú manuálne z GitHubu.",
                         color = Color(0xFFFF9FB0), fontSize = 12.sp, lineHeight = 17.sp,
                     )
                 } else {
-                    Text(
-                        "Verzia ${s.info.versionName} je pripravená.",
-                        color = BeamColors.Mist, fontSize = 14.sp, fontWeight = FontWeight.Medium,
-                    )
+                    Text("Verzia ${s.info.versionName} je pripravená.", color = BeamColors.Mist, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                     Spacer(Modifier.height(4.dp))
-                    Text(
-                        "Klepni na Nainštalovať a potvrď v systéme.",
-                        color = BeamColors.Fog, fontSize = 13.sp,
-                    )
+                    Text("Klepni na Nainštalovať a potvrď v systéme.", color = BeamColors.Fog, fontSize = 13.sp)
                     Spacer(Modifier.height(4.dp))
                     Text(
                         "Ak systém upozorní na neznámu aplikáciu, klepni na Detaily a vyber Inštalovať aj tak.",
@@ -433,55 +328,34 @@ private fun UpdateCard(ctx: android.content.Context) {
                 }
                 Spacer(Modifier.height(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    PillAction(
-                        if (mismatch) "Otvoriť na GitHube" else "Nainštalovať",
-                        BeamColors.Sage,
-                    ) {
-                        if (mismatch) {
-                            Updater.openInBrowser(ctx, s.info)
-                        } else if (!Updater.install(ctx, s.file)) {
-                            Updater.requestInstallPermission(ctx)
-                        }
-                    }
+                    BeamChip(
+                        label = if (mismatch) "Otvoriť na GitHube" else "Nainštalovať",
+                        onClick = {
+                            if (mismatch) {
+                                Updater.openInBrowser(ctx, s.info)
+                            } else if (!Updater.install(ctx, s.file)) {
+                                Updater.requestInstallPermission(ctx)
+                            }
+                        },
+                        selected = true,
+                    )
                     if (mismatch) {
-                        PillAction("Skúsiť nainštalovať", BeamColors.Sage.copy(alpha = 0.14f), BeamColors.Sage) {
+                        BeamChip(label = "Skúsiť nainštalovať", onClick = {
                             if (!Updater.install(ctx, s.file)) Updater.requestInstallPermission(ctx)
-                        }
+                        })
                     }
                 }
             }
             is UpdateUi.Failed -> {
-                Text(
-                    "Sťahovanie verzie ${s.info.versionName} zlyhalo.",
-                    color = Color(0xFFFF9FB0), fontSize = 14.sp, fontWeight = FontWeight.Medium,
-                )
+                Text("Sťahovanie verzie ${s.info.versionName} zlyhalo.", color = Color(0xFFFF9FB0), fontSize = 14.sp, fontWeight = FontWeight.Medium)
                 Spacer(Modifier.height(4.dp))
                 Text(s.reason, color = BeamColors.Fog, fontSize = 13.sp, lineHeight = 18.sp)
                 Spacer(Modifier.height(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    PillAction("Skúsiť znova", BeamColors.Sage) { Updater.startDownload(ctx, s.info) }
-                    PillAction("Otvoriť na GitHube", BeamColors.Sage.copy(alpha = 0.14f), BeamColors.Sage) {
-                        Updater.openInBrowser(ctx, s.info)
-                    }
+                    BeamChip(label = "Skúsiť znova", onClick = { Updater.startDownload(ctx, s.info) }, selected = true)
+                    BeamChip(label = "Otvoriť na GitHube", onClick = { Updater.openInBrowser(ctx, s.info) })
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun PillAction(
-    label: String,
-    bg: Color,
-    fg: Color = BeamColors.SageInk,
-    onClick: () -> Unit,
-) {
-    Box(
-        Modifier
-            .background(bg, RoundedCornerShape(999.dp))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 9.dp),
-    ) {
-        Text(label, color = fg, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
     }
 }

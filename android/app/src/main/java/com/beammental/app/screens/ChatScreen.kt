@@ -15,6 +15,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -56,21 +57,20 @@ import com.beammental.app.data.ChatMessage
 import com.beammental.app.data.Locator
 import com.beammental.app.data.UpdateUi
 import com.beammental.app.data.Updater
+import com.beammental.app.ui.components.BeamChip
+import com.beammental.app.ui.components.BeamIconButton
+import com.beammental.app.ui.components.BeamTextField
+import com.beammental.app.ui.components.BeamTopBar
+import com.beammental.app.ui.components.CRISIS_TEXT
+import com.beammental.app.ui.components.CrisisCard
 import com.beammental.app.ui.effects.MascotBlob
 import com.beammental.app.ui.effects.MeshBackground
 import com.beammental.app.ui.theme.BeamColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-private const val CRISIS_TEXT =
-    "To, čo cítiš, je veľmi vážne a nie si v tom sám/sama. Zavolaj teraz:\n\n" +
-        "Linka krízy · 0800 900 900 (nonstop)\n" +
-        "IPčko · 0800 500 500 (nonstop)\n" +
-        "Tiesňové volanie · 112\n\n" +
-        "Som len chatbot — v takejto chvíli ti musí pomôcť človek. Zavolaj, nie je to zlé rozhodnutie."
-
 @Composable
-fun ChatScreen(onPrehlad: () -> Unit, onSettings: () -> Unit) {
+fun ChatScreen(onVoice: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val notifPermissionLauncher = rememberLauncherForActivityResult(
@@ -83,7 +83,6 @@ fun ChatScreen(onPrehlad: () -> Unit, onSettings: () -> Unit) {
     var streaming by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var lastUser by remember { mutableStateOf<String?>(null) }
-    var voiceOpen by remember { mutableStateOf(false) }
     val updateUi by Updater.state.collectAsState()
     var bannerDismissed by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
@@ -185,70 +184,33 @@ fun ChatScreen(onPrehlad: () -> Unit, onSettings: () -> Unit) {
             modifier = Modifier.matchParentSize(),
             intensity = if (busy || streaming || input.isNotBlank()) 1f else 0f,
         )
-        Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding()) {
-        // header — translucent glass bar
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .background(BeamColors.Ink.copy(alpha = 0.55f))
-                .padding(horizontal = 18.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
+        Column(Modifier.fillMaxSize().statusBarsPadding()) {
+        BeamTopBar(
+            title = "Beam",
+            subtitle = display,
+            mascot = when {
+                busy -> "thinking"
+                input.isNotBlank() -> "listening"
+                else -> "idle"
+            },
+            mascotSize = 32.dp,
         ) {
-            MascotBlob(
-                modifier = Modifier.size(32.dp), blobSize = 32.dp,
-                animation = when {
-                    busy -> "thinking"
-                    input.isNotBlank() -> "listening"
-                    else -> "idle"
-                },
+            BeamIconButton(
+                icon = Icons.Rounded.Mic,
+                contentDescription = "Hlasový režim",
+                onClick = onVoice,
+                tint = BeamColors.Accent,
             )
-            Spacer(Modifier.width(10.dp))
-            Column {
-                Text(
-                    "Beam",
-                    fontWeight = FontWeight.SemiBold,
-                    color = BeamColors.Mist,
-                    fontSize = 15.sp,
-                    letterSpacing = (-0.2).sp,
-                )
-                Text(
-                    display,
-                    color = BeamColors.Fog,
-                    fontSize = 11.sp,
-                    lineHeight = 14.sp,
-                )
-            }
-            Spacer(Modifier.weight(1f))
-            HeaderIcon(
-                icon = { Icon(Icons.Rounded.Mic, "Hlasový režim", tint = BeamColors.Sage, modifier = Modifier.size(20.dp)) },
-                onClick = { voiceOpen = true },
-            )
-            Spacer(Modifier.width(8.dp))
-            HeaderIcon(
-                icon = { Icon(Icons.Outlined.Insights, "Prehľad", tint = BeamColors.Sage, modifier = Modifier.size(20.dp)) },
-                onClick = onPrehlad,
-            )
-            Spacer(Modifier.width(8.dp))
-            HeaderIcon(
-                icon = { Icon(Icons.Outlined.Add, "Nový rozhovor", tint = BeamColors.Fog, modifier = Modifier.size(20.dp)) },
+            BeamIconButton(
+                icon = Icons.Outlined.Add,
+                contentDescription = "Nový rozhovor",
                 onClick = {
-                    if (busy) return@HeaderIcon
+                    if (busy) return@BeamIconButton
                     messages = emptyList(); error = null
                     scope.launch { persist() }
                 },
             )
-            Spacer(Modifier.width(8.dp))
-            HeaderIcon(
-                icon = { Icon(Icons.Outlined.Settings, "Nastavenia", tint = BeamColors.Fog, modifier = Modifier.size(20.dp)) },
-                onClick = onSettings,
-            )
         }
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .height(1.dp)
-                .background(BeamColors.Line.copy(alpha = 0.5f)),
-        )
 
         if (updateUi !is UpdateUi.None && !bannerDismissed) {
             UpdateBanner(
@@ -314,27 +276,9 @@ fun ChatScreen(onPrehlad: () -> Unit, onSettings: () -> Unit) {
                         "Neviem, čo cítim",
                         "Chcem sa podeliť o radosť",
                     ).forEach { hint ->
-                        val chipInteraction = remember { MutableInteractionSource() }
-                        val chipPressed by chipInteraction.collectIsPressedAsState()
-                        val chipScale by animateFloatAsState(
-                            if (chipPressed) 0.96f else 1f,
-                            spring(dampingRatio = 0.55f, stiffness = 380f),
-                            label = "chipScale",
-                        )
-                        Text(
-                            hint,
-                            color = BeamColors.Mist,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier
-                                .graphicsLayer {
-                                    scaleX = chipScale
-                                    scaleY = chipScale
-                                }
-                                .background(BeamColors.Card.copy(alpha = 0.7f), RoundedCornerShape(999.dp))
-                                .border(1.dp, BeamColors.Line.copy(alpha = 0.6f), RoundedCornerShape(999.dp))
-                                .clickable(interactionSource = chipInteraction, indication = null) { input = hint }
-                                .padding(horizontal = 20.dp, vertical = 12.dp),
+                        BeamChip(
+                            label = hint,
+                            onClick = { input = hint },
                         )
                         Spacer(Modifier.height(10.dp))
                     }
@@ -356,7 +300,7 @@ fun ChatScreen(onPrehlad: () -> Unit, onSettings: () -> Unit) {
                         ) {
                             Text(
                                 text,
-                                color = BeamColors.SageInk,
+                                color = BeamColors.AccentInk,
                                 fontSize = 15.sp,
                                 lineHeight = 22.sp,
                                 modifier = Modifier
@@ -364,8 +308,8 @@ fun ChatScreen(onPrehlad: () -> Unit, onSettings: () -> Unit) {
                                     .background(
                                         Brush.verticalGradient(
                                             listOf(
-                                                BeamColors.Sage,
-                                                BeamColors.Sage.copy(alpha = 0.92f),
+                                                BeamColors.Accent,
+                                                BeamColors.Accent.copy(alpha = 0.92f),
                                             ),
                                         ),
                                         RoundedCornerShape(
@@ -390,7 +334,7 @@ fun ChatScreen(onPrehlad: () -> Unit, onSettings: () -> Unit) {
                                     Modifier
                                         .padding(top = 9.dp, end = 9.dp)
                                         .size(6.dp)
-                                        .background(BeamColors.Sage, CircleShape),
+                                        .background(BeamColors.Accent, CircleShape),
                                 )
                                 Column(Modifier.fillMaxWidth(0.92f)) {
                                     Text(
@@ -406,7 +350,7 @@ fun ChatScreen(onPrehlad: () -> Unit, onSettings: () -> Unit) {
                                                 .padding(top = 3.dp)
                                                 .size(width = 7.dp, height = 16.dp)
                                                 .alpha(caretAlpha)
-                                                .background(BeamColors.Sage),
+                                                .background(BeamColors.Accent),
                                         )
                                     }
                                 }
@@ -449,7 +393,7 @@ fun ChatScreen(onPrehlad: () -> Unit, onSettings: () -> Unit) {
                                         .background(Color(0xFFFF6E82).copy(alpha = 0.18f), RoundedCornerShape(999.dp))
                                         .clickable(
                                             interactionSource = retryInteraction,
-                                            indication = null,
+                                            indication = LocalIndication.current,
                                             enabled = !busy,
                                         ) {
                                             error = null
@@ -497,10 +441,10 @@ fun ChatScreen(onPrehlad: () -> Unit, onSettings: () -> Unit) {
                 .padding(horizontal = 12.dp, vertical = 10.dp),
         ) {
             Row(verticalAlignment = Alignment.Bottom) {
-                OutlinedTextField(
+                BeamTextField(
                     value = input,
                     onValueChange = { input = it },
-                    placeholder = { Text("Čo máš na srdci?", color = BeamColors.Fog.copy(alpha = 0.85f)) },
+                    placeholder = "Čo máš na srdci?",
                     shape = RoundedCornerShape(24.dp),
                     maxLines = 4,
                     keyboardOptions = KeyboardOptions(
@@ -508,78 +452,24 @@ fun ChatScreen(onPrehlad: () -> Unit, onSettings: () -> Unit) {
                         imeAction = ImeAction.Send,
                     ),
                     keyboardActions = KeyboardActions(onSend = { send() }),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = BeamColors.Sage.copy(alpha = 0.7f),
-                        unfocusedBorderColor = BeamColors.Line.copy(alpha = 0.6f),
-                        focusedContainerColor = BeamColors.Ink2.copy(alpha = 0.7f),
-                        unfocusedContainerColor = BeamColors.Ink2.copy(alpha = 0.7f),
-                        cursorColor = BeamColors.Sage,
-                    ),
                     modifier = Modifier.weight(1f),
                 )
                 Spacer(Modifier.width(8.dp))
-                val enabled = !busy && input.isNotBlank()
-                val interaction = remember { MutableInteractionSource() }
-                val pressed by interaction.collectIsPressedAsState()
-                val sendScale by animateFloatAsState(
-                    if (pressed) 0.88f else 1f,
-                    spring(dampingRatio = 0.5f, stiffness = 380f),
-                    label = "sendScale",
+                BeamIconButton(
+                    icon = Icons.AutoMirrored.Rounded.Send,
+                    contentDescription = "Poslať",
+                    onClick = { send() },
+                    enabled = !busy && input.isNotBlank(),
+                    fill = BeamColors.Accent,
+                    hairline = Color.Transparent,
+                    tint = BeamColors.AccentInk,
+                    iconSize = 19.dp,
+                    disc = 40.dp,
+                    size = 46.dp,
                 )
-                Box(
-                    Modifier
-                        .size(46.dp)
-                        .alpha(if (enabled) 1f else 0.45f)
-                        .graphicsLayer {
-                            scaleX = sendScale
-                            scaleY = sendScale
-                        }
-                        .background(BeamColors.Sage, CircleShape)
-                        .clickable(interactionSource = interaction, indication = null, enabled = enabled) { send() },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        Icons.AutoMirrored.Rounded.Send,
-                        "Poslať",
-                        tint = BeamColors.SageInk,
-                        modifier = Modifier.size(19.dp),
-                    )
-                }
             }
         }
         }
-
-        if (voiceOpen) {
-            VoiceScreen(onClose = { voiceOpen = false })
-        }
-    }
-}
-
-@Composable
-private fun HeaderIcon(
-    icon: @Composable () -> Unit,
-    onClick: () -> Unit,
-) {
-    val interaction = remember { MutableInteractionSource() }
-    val pressed by interaction.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        if (pressed) 0.85f else 1f,
-        spring(dampingRatio = 0.55f, stiffness = 400f),
-        label = "headerIconScale",
-    )
-    Box(
-        Modifier
-            .size(36.dp)
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
-            .background(BeamColors.Card.copy(alpha = 0.5f), CircleShape)
-            .border(1.dp, BeamColors.Line.copy(alpha = 0.6f), CircleShape)
-            .clickable(interactionSource = interaction, indication = null, onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        icon()
     }
 }
 
@@ -600,52 +490,5 @@ private fun ThinkingLabel() {
             )
             Text(".", color = BeamColors.Fog, fontSize = 15.sp, modifier = Modifier.alpha(a))
         }
-    }
-}
-
-@Composable
-fun CrisisCard() {
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .background(BeamColors.Card, RoundedCornerShape(16.dp))
-            .border(1.dp, BeamColors.Line, RoundedCornerShape(16.dp))
-            .padding(14.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Rounded.Warning, null, tint = Color.White, modifier = Modifier.size(17.dp))
-            Spacer(Modifier.width(8.dp))
-            Text("Krízová pomoc", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-        }
-        Spacer(Modifier.height(10.dp))
-        listOf(
-            "0800 900 900" to "Linka krízy · nonstop",
-            "0800 500 500" to "IPčko · nonstop",
-            "112" to "Tiesňové volanie",
-        ).forEach { (number, label) ->
-            val ctx = LocalContext.current
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .background(Color.White.copy(alpha = 0.04f), RoundedCornerShape(12.dp))
-                    .clickable {
-                        ctx.startActivity(
-                            android.content.Intent(android.content.Intent.ACTION_DIAL, android.net.Uri.parse("tel:$number"))
-                        )
-                    }
-                    .padding(horizontal = 12.dp, vertical = 11.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(Icons.Rounded.Phone, null, tint = BeamColors.Mist, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(10.dp))
-                Text("$label · ", color = BeamColors.Mist, fontSize = 14.sp)
-                Text(number, color = BeamColors.Mist, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-            }
-            Spacer(Modifier.height(7.dp))
-        }
-        Text(
-            "Som len chatbot — v kríze ti musí pomôcť človek. Zavolaj, nie je to zlé rozhodnutie.",
-            color = BeamColors.Fog, fontSize = 12.sp,
-        )
     }
 }
