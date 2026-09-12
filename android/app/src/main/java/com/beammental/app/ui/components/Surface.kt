@@ -91,9 +91,11 @@ fun BeamSurface(
     onClick: (() -> Unit)? = null,
     enabled: Boolean = true,
     onClickLabel: String? = null,
-    beam: Boolean = false,
+    beam: Boolean = true,
     beamActive: Boolean = true,
     beamSize: BeamSize = BeamSize.MD,
+    beamStrength: Float = 0.7f,
+    beamPalette: List<Color>? = null,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -111,7 +113,13 @@ fun BeamSurface(
         .background(if (pressed && onClick != null) BeamColors.CardPressed else fill, shape)
         .border(1.dp, hairline, shape)
     if (glow > 0f) m = m.insetGlow(shape, glow)
-    if (beam) m = m.borderBeam(size = beamSize, shape = shape, active = beamActive)
+    if (beam) m = m.borderBeam(
+        size = beamSize,
+        shape = shape,
+        active = beamActive,
+        strength = beamStrength,
+        palette = beamPalette ?: BeamColors.BeamPalette,
+    )
     if (onClick != null) {
         m = m.clickable(
             interactionSource = interactionSource,

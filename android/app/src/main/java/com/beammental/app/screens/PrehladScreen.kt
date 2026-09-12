@@ -1,5 +1,6 @@
 package com.beammental.app.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -24,7 +25,9 @@ import androidx.compose.ui.unit.sp
 import com.beammental.app.data.CheckinRow
 import com.beammental.app.data.Locator
 import com.beammental.app.ui.components.*
+import com.beammental.app.ui.effects.BeamLoader
 import com.beammental.app.ui.effects.MeshBackground
+import com.beammental.app.ui.effects.StaggeredEntrance
 import com.beammental.app.ui.theme.BeamColors
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -43,6 +46,7 @@ private val MOODS = listOf(
 
 @Composable
 fun PrehladScreen(onBack: () -> Unit) {
+    BackHandler { onBack() }
     val scope = rememberCoroutineScope()
     var checkins by remember { mutableStateOf<List<CheckinRow>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
@@ -108,151 +112,158 @@ fun PrehladScreen(onBack: () -> Unit) {
             )
 
             Column(Modifier.padding(horizontal = 16.dp)) {
-                Spacer(Modifier.height(16.dp))
-                BeamCaption("Vidíš to len ty — údaje sú tvoje.")
+                StaggeredEntrance(0) {
+                    Spacer(Modifier.height(16.dp))
+                    BeamCaption("Vidíš to len ty — údaje sú tvoje.")
 
-                Spacer(Modifier.height(16.dp))
+                    Spacer(Modifier.height(16.dp))
 
-                BeamSurface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    contentPadding = PaddingValues(18.dp),
-                ) {
-                    Text(
-                        "Ako sa dnes máš?",
-                        fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = BeamColors.Mist,
-                    )
-                    Spacer(Modifier.height(14.dp))
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    BeamSurface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        contentPadding = PaddingValues(18.dp),
                     ) {
-                        MOODS.forEach { m ->
-                            val on = selectedMood == m.value
-                            Box(
-                                Modifier
-                                    .weight(1f)
-                                    .clip(MoodPillShape)
-                                    .background(if (on) BeamColors.Accent else BeamColors.Accent.copy(alpha = 0.10f))
-                                    .border(
-                                        1.dp,
-                                        if (on) BeamColors.Accent else BeamColors.Line,
-                                        MoodPillShape,
+                        Text(
+                            "Ako sa dnes máš?",
+                            fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = BeamColors.Mist,
+                        )
+                        Spacer(Modifier.height(14.dp))
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            MOODS.forEach { m ->
+                                val on = selectedMood == m.value
+                                Box(
+                                    Modifier
+                                        .weight(1f)
+                                        .clip(MoodPillShape)
+                                        .background(if (on) BeamColors.Accent else BeamColors.Accent.copy(alpha = 0.10f))
+                                        .border(
+                                            1.dp,
+                                            if (on) BeamColors.Accent else BeamColors.Line,
+                                            MoodPillShape,
+                                        )
+                                        .clickable {
+                                            selectedMood = m.value
+                                            savedMsg = false
+                                        }
+                                        .padding(vertical = 10.dp),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Text(
+                                        m.label,
+                                        fontSize = 11.sp, lineHeight = 13.sp,
+                                        fontWeight = if (on) FontWeight.SemiBold else FontWeight.Medium,
+                                        color = if (on) BeamColors.AccentInk else BeamColors.Fog,
+                                        maxLines = 1,
                                     )
-                                    .clickable {
-                                        selectedMood = m.value
-                                        savedMsg = false
-                                    }
-                                    .padding(vertical = 10.dp),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Text(
-                                    m.label,
-                                    fontSize = 11.sp, lineHeight = 13.sp,
-                                    fontWeight = if (on) FontWeight.SemiBold else FontWeight.Medium,
-                                    color = if (on) BeamColors.AccentInk else BeamColors.Fog,
-                                    maxLines = 1,
-                                )
+                                }
+                            }
+                        }
+                        Spacer(Modifier.height(12.dp))
+                        BeamTextField(
+                            value = note,
+                            onValueChange = { note = it },
+                            placeholder = "Krátka poznámka (nepovinné)",
+                            singleLine = true,
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            BeamButton(
+                                label = if (saving) "Ukladám…" else "Uložiť dnes",
+                                onClick = { save() },
+                                enabled = selectedMood != null,
+                                busy = saving,
+                                shape = RoundedCornerShape(999.dp),
+                                height = 40.dp,
+                                contentPadding = PaddingValues(horizontal = 16.dp),
+                            )
+                            if (savedMsg) {
+                                Text("Uložené.", fontSize = 13.sp, color = BeamColors.Accent)
                             }
                         }
                     }
-                    Spacer(Modifier.height(12.dp))
-                    BeamTextField(
-                        value = note,
-                        onValueChange = { note = it },
-                        placeholder = "Krátka poznámka (nepovinné)",
-                        singleLine = true,
-                        shape = RoundedCornerShape(14.dp),
+                }
+
+                StaggeredEntrance(1) {
+                    Spacer(Modifier.height(14.dp))
+
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        StatBlock(
+                            modifier = Modifier.weight(1f),
+                            value = if (streak > 0) "$streak" else "0",
+                            label = if (streak == 1) "deň v rade" else if (streak >= 2 && streak <= 4) "dni v rade" else "dní v rade",
+                        )
+                        StatBlock(
+                            modifier = Modifier.weight(1f),
+                            value = avg30?.let { String.format(Locale.US, "%.1f", it) } ?: "—",
+                            label = "priemer 30 dní",
+                        )
+                        StatBlock(
+                            modifier = Modifier.weight(1f),
+                            value = "${checkins.size}",
+                            label = "záznamov",
+                        )
+                    }
+                }
+
+                StaggeredEntrance(2) {
+                    Spacer(Modifier.height(14.dp))
+
+                    BeamSurface(
                         modifier = Modifier.fillMaxWidth(),
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        BeamButton(
-                            label = if (saving) "Ukladám…" else "Uložiť dnes",
-                            onClick = { save() },
-                            enabled = selectedMood != null,
-                            busy = saving,
-                            shape = RoundedCornerShape(999.dp),
-                            height = 40.dp,
-                            contentPadding = PaddingValues(horizontal = 16.dp),
-                        )
-                        if (savedMsg) {
-                            Text("Uložené.", fontSize = 13.sp, color = BeamColors.Accent)
+                        shape = RoundedCornerShape(16.dp),
+                        contentPadding = PaddingValues(18.dp),
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                "Posledných 30 dní",
+                                fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = BeamColors.Mist,
+                            )
+                            Spacer(Modifier.weight(1f))
+                            Text("1–5", fontSize = 11.sp, color = BeamColors.Fog)
                         }
-                    }
-                }
-
-                Spacer(Modifier.height(14.dp))
-
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    StatBlock(
-                        modifier = Modifier.weight(1f),
-                        value = if (streak > 0) "$streak" else "0",
-                        label = if (streak == 1) "deň v rade" else if (streak >= 2 && streak <= 4) "dni v rade" else "dní v rade",
-                    )
-                    StatBlock(
-                        modifier = Modifier.weight(1f),
-                        value = avg30?.let { String.format(Locale.US, "%.1f", it) } ?: "—",
-                        label = "priemer 30 dní",
-                    )
-                    StatBlock(
-                        modifier = Modifier.weight(1f),
-                        value = "${checkins.size}",
-                        label = "záznamov",
-                    )
-                }
-
-                Spacer(Modifier.height(14.dp))
-
-                BeamSurface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    contentPadding = PaddingValues(18.dp),
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            "Posledných 30 dní",
-                            fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = BeamColors.Mist,
-                        )
-                        Spacer(Modifier.weight(1f))
-                        Text("1–5", fontSize = 11.sp, color = BeamColors.Fog)
-                    }
-                    Spacer(Modifier.height(16.dp))
-                    if (loading) {
-                        Box(Modifier.fillMaxWidth().height(96.dp), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(
-                                color = BeamColors.Accent,
-                                modifier = Modifier.size(20.dp),
-                                strokeWidth = 2.dp,
+                        Spacer(Modifier.height(16.dp))
+                        if (loading) {
+                            Box(Modifier.fillMaxWidth().height(96.dp), contentAlignment = Alignment.Center) {
+                                BeamLoader(
+                                    size = 24.dp,
+                                    color = BeamColors.Accent,
+                                )
+                            }
+                        } else {
+                            MoodChart(
+                                days = last30Days(),
+                                daySet = remember(checkins) { checkins.associateBy({ it.day }) },
                             )
                         }
-                    } else {
-                        MoodChart(
-                            days = last30Days(),
-                            daySet = remember(checkins) { checkins.associateBy({ it.day }) },
+                        Spacer(Modifier.height(10.dp))
+                        BeamCaption(
+                            if (checkins.isEmpty())
+                                "Zatiaľ tu nič nie je. Prvý záznam pridá klik na náladu hore."
+                            else
+                                "Vyšší stĺpec = lepší deň. Sviatočné dni bez záznamu sú malé bodky.",
                         )
                     }
-                    Spacer(Modifier.height(10.dp))
-                    BeamCaption(
-                        if (checkins.isEmpty())
-                            "Zatiaľ tu nič nie je. Prvý záznam pridá klik na náladu hore."
-                        else
-                            "Vyšší stĺpec = lepší deň. Sviatočné dni bez záznamu sú malé bodky.",
-                    )
                 }
 
-                Spacer(Modifier.height(14.dp))
+                StaggeredEntrance(3) {
+                    Spacer(Modifier.height(14.dp))
 
-                Row(
-                    Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center,
-                ) {
-                    Icon(Icons.Outlined.Lock, null, tint = BeamColors.Fog, modifier = Modifier.size(12.dp))
-                    Spacer(Modifier.width(6.dp))
-                    BeamCaption("Záznamy sú viazané na tvoj účet a nikam ich neposielame.")
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                    ) {
+                        Icon(Icons.Outlined.Lock, null, tint = BeamColors.Fog, modifier = Modifier.size(12.dp))
+                        Spacer(Modifier.width(6.dp))
+                        BeamCaption("Záznamy sú viazané na tvoj účet a nikam ich neposielame.")
+                    }
+                    Spacer(Modifier.height(8.dp))
                 }
-                Spacer(Modifier.height(8.dp))
             }
         }
     }

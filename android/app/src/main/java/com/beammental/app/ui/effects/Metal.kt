@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -300,10 +299,9 @@ fun MetalButton(
     ) {
         Box(Modifier.padding(contentPadding), contentAlignment = Alignment.Center) {
             when {
-                busy -> CircularProgressIndicator(
+                busy -> BeamLoader(
+                    size = 18.dp,
                     color = BeamColors.Chrome,
-                    strokeWidth = 2.dp,
-                    modifier = Modifier.size(18.dp),
                 )
                 content != null -> content()
                 label != null -> Text(

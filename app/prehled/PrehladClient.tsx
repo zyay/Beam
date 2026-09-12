@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { BorderBeam } from "border-beam";
 
 type Checkin = { day: string; mood: number; note: string | null };
 
@@ -120,10 +121,7 @@ export default function PrehladClient({ name }: { name: string }) {
         }}
       />
       <div className="relative z-10 mx-auto w-full max-w-[620px] px-5 py-8">
-        <div className="flex items-center justify-between">
-          <a href="/chat" className="text-sm text-fog transition-colors hover:text-mist">
-            ← Chat
-          </a>
+        <div className="flex items-center justify-end">
           <span className="text-sm text-fog">{name}</span>
         </div>
 
@@ -133,6 +131,7 @@ export default function PrehladClient({ name }: { name: string }) {
         </p>
 
         {/* today check-in */}
+        <BorderBeam size="md" colorVariant="colorful" strength={0.7} theme="dark">
         <section className="mt-7 rounded-3xl border border-line/60 bg-card/60 p-6">
           <h2 className="text-[15px] font-medium text-mist">Ako sa dnes máš?</h2>
           <div className="mt-4 grid grid-cols-5 gap-2">
@@ -183,6 +182,7 @@ export default function PrehladClient({ name }: { name: string }) {
             {error && <span className="text-sm text-rose-300">{error}</span>}
           </div>
         </section>
+        </BorderBeam>
 
         {/* stats */}
         <section className="mt-4 grid grid-cols-3 gap-3">
@@ -203,6 +203,7 @@ export default function PrehladClient({ name }: { name: string }) {
         </section>
 
         {/* 30-day chart */}
+        <BorderBeam size="md" colorVariant="colorful" strength={0.7} theme="dark">
         <section className="mt-4 rounded-3xl border border-line/60 bg-card/60 p-6">
           <div className="flex items-baseline justify-between">
             <h2 className="text-[15px] font-medium text-mist">Posledných 30 dní</h2>
@@ -236,6 +237,7 @@ export default function PrehladClient({ name }: { name: string }) {
               : "Vyšší stĺpec = lepší deň. Dni bez záznamu sú malé bodky."}
           </p>
         </section>
+        </BorderBeam>
 
         <p className="mt-5 flex items-center justify-center gap-1.5 text-[11px] text-fog">
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden>

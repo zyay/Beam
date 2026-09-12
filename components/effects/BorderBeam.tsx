@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
+import { BorderBeam as NpmBorderBeam } from "border-beam";
 
-/** Glass card with a light beam running along its border (libraries.dev style). */
 export default function BorderBeam({
   children,
   className = "",
@@ -9,11 +9,13 @@ export default function BorderBeam({
   className?: string;
 }) {
   return (
-    <div
-      className={`beam-border glass ${className}`}
-      style={{ borderRadius: 20 }}
-    >
-      {children}
-    </div>
+    <NpmBorderBeam size="md" colorVariant="colorful" strength={0.7} theme="dark">
+      <div
+        className={`glass ${className}`}
+        style={{ borderRadius: 20 }}
+      >
+        {children}
+      </div>
+    </NpmBorderBeam>
   );
 }

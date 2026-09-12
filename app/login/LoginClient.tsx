@@ -22,6 +22,7 @@ import GlowCard from "@/components/effects/GlowCard";
 import BlueprintGrid from "@/components/effects/BlueprintGrid";
 import BeamBackground from "@/components/effects/BeamBackground";
 import BeamMark from "@/components/BeamMark";
+import { BorderBeam } from "border-beam";
 import dynamic from "next/dynamic";
 
 const Mascot = dynamic(() => import("@/components/mascot/Mascot"), { ssr: false });
@@ -182,6 +183,7 @@ export default function LoginClient({ next }: { next: string }) {
             transition={{ type: "spring", stiffness: 300, damping: 24 }}
             className="bento-cell md:col-span-7 md:row-span-2"
           >
+            <BorderBeam size="md" colorVariant="colorful" strength={0.7} theme="dark">
             <GlowCard className="flex h-full flex-col p-5">
               <CellLabel icon={<span className="text-mist">01</span>}>
                 Ako vyzerá rozhovor
@@ -214,10 +216,12 @@ export default function LoginClient({ next }: { next: string }) {
                 </div>
               </div>
             </GlowCard>
+            </BorderBeam>
           </motion.div>
 
           {/* B: auth */}
           <div className="bento-cell md:col-span-5 md:row-span-2" id="zacat">
+            <BorderBeam size="pulse-inner" colorVariant="colorful" strength={0.7} theme="dark">
             <GlowCard className="h-full p-6">
               <CellLabel icon={<User size={13} className="text-mist" />}>
                 {mode === "login" ? "Vitaj späť" : "Nový účet"}
@@ -318,6 +322,7 @@ export default function LoginClient({ next }: { next: string }) {
                 </p>
               </form>
             </GlowCard>
+            </BorderBeam>
           </div>
 
           {/* C: crisis */}
@@ -326,6 +331,7 @@ export default function LoginClient({ next }: { next: string }) {
             transition={{ type: "spring", stiffness: 300, damping: 24 }}
             className="bento-cell md:col-span-4"
           >
+            <BorderBeam size="md" colorVariant="colorful" strength={0.7} theme="dark">
             <GlowCard className="h-full p-5">
               <CellLabel icon={<span className="text-mist">03</span>}>
                 Krízový protokol
@@ -336,6 +342,7 @@ export default function LoginClient({ next }: { next: string }) {
                 karta s linkami krízy. Nonstop, zdarma.
               </p>
             </GlowCard>
+            </BorderBeam>
           </motion.div>
 
           {/* D: live voice */}
@@ -344,6 +351,7 @@ export default function LoginClient({ next }: { next: string }) {
             transition={{ type: "spring", stiffness: 300, damping: 24 }}
             className="bento-cell md:col-span-4"
           >
+            <BorderBeam size="md" colorVariant="colorful" strength={0.7} theme="dark">
             <GlowCard className="h-full p-5">
               <CellLabel icon={<span className="text-mist">04</span>}>
                 Hlasový hovor
@@ -357,6 +365,7 @@ export default function LoginClient({ next }: { next: string }) {
                 a vlastnou vetou ho kedykoľvek prerušíš (barge-in).
               </p>
             </GlowCard>
+            </BorderBeam>
           </motion.div>
 
           {/* E: model */}
@@ -365,6 +374,7 @@ export default function LoginClient({ next }: { next: string }) {
             transition={{ type: "spring", stiffness: 300, damping: 24 }}
             className="bento-cell md:col-span-4"
           >
+            <BorderBeam size="md" colorVariant="colorful" strength={0.7} theme="dark">
             <GlowCard className="h-full p-5">
               <CellLabel icon={<span className="text-mist">05</span>}>
                 Mozog
@@ -378,6 +388,7 @@ export default function LoginClient({ next }: { next: string }) {
                 (SSE), web ju vráti naraz.
               </p>
             </GlowCard>
+            </BorderBeam>
           </motion.div>
 
           {/* F: privacy + native */}
@@ -386,6 +397,7 @@ export default function LoginClient({ next }: { next: string }) {
             transition={{ type: "spring", stiffness: 300, damping: 24 }}
             className="bento-cell md:col-span-12"
           >
+            <BorderBeam size="md" colorVariant="colorful" strength={0.7} theme="dark">
             <GlowCard className="grid h-full grid-cols-1 divide-y divide-line sm:grid-cols-2 sm:divide-x sm:divide-y-0">
               <div className="p-5">
                 <CellLabel icon={<span className="text-mist">06</span>}>
@@ -406,6 +418,7 @@ export default function LoginClient({ next }: { next: string }) {
                 </p>
               </div>
             </GlowCard>
+            </BorderBeam>
           </motion.div>
         </section>
 

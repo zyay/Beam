@@ -1,8 +1,13 @@
 package com.beammental.app.screens
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -17,6 +22,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -27,12 +33,14 @@ import com.beammental.app.data.Updater
 import com.beammental.app.data.UpdateUi
 import com.beammental.app.ui.components.*
 import com.beammental.app.ui.effects.MeshBackground
+import com.beammental.app.ui.effects.StaggeredEntrance
 import com.beammental.app.ui.theme.BEAM_THEMES
 import com.beammental.app.ui.theme.BeamColors
 import kotlinx.coroutines.launch
 
 @Composable
 fun SettingsScreen(onPrehlad: () -> Unit, onLegal: () -> Unit, onBack: () -> Unit, onLoggedOut: () -> Unit) {
+    BackHandler { onBack() }
     val scope = rememberCoroutineScope()
     val ctx = LocalContext.current
     var name by remember { mutableStateOf("") }
@@ -59,167 +67,188 @@ fun SettingsScreen(onPrehlad: () -> Unit, onLegal: () -> Unit, onBack: () -> Uni
 
             Column(Modifier.padding(horizontal = 16.dp)) {
 
-                BeamSectionLabel("Účet", modifier = Modifier.padding(start = 4.dp, top = 20.dp, bottom = 8.dp))
-                BeamSurface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    contentPadding = PaddingValues(18.dp),
-                ) {
-                    BeamTextField(
-                        value = name,
-                        onValueChange = { name = it; saved = false },
-                        placeholder = "Meno",
-                        singleLine = true,
-                        shape = RoundedCornerShape(14.dp),
+                StaggeredEntrance(index = 0) {
+                    BeamSectionLabel("Účet", modifier = Modifier.padding(start = 4.dp, top = 20.dp, bottom = 8.dp))
+                    BeamSurface(
                         modifier = Modifier.fillMaxWidth(),
-                    )
-                    Spacer(Modifier.height(12.dp))
+                        shape = RoundedCornerShape(16.dp),
+                        contentPadding = PaddingValues(18.dp),
+                    ) {
+                        BeamTextField(
+                            value = name,
+                            onValueChange = { name = it; saved = false },
+                            placeholder = "Meno",
+                            singleLine = true,
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        BeamButton(
+                            label = if (saved) "Uložené" else if (saving) "Ukladám…" else "Uložiť",
+                            onClick = {
+                                saving = true
+                                scope.launch {
+                                    Locator.api.saveName(name.trim())
+                                    saving = false
+                                    saved = true
+                                }
+                            },
+                            enabled = !saving,
+                            busy = saving,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                }
+
+                StaggeredEntrance(index = 1) {
+                    BeamSectionLabel("Prehľad", modifier = Modifier.padding(start = 4.dp, top = 20.dp, bottom = 8.dp))
+                    BeamSurface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        contentPadding = PaddingValues(16.dp),
+                        onClick = onPrehlad,
+                        onClickLabel = "Záznamy nálady",
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Outlined.Insights, null,
+                                tint = BeamColors.Accent, modifier = Modifier.size(18.dp),
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    "Záznamy nálady",
+                                    color = BeamColors.Mist,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Medium,
+                                )
+                                Text(
+                                    "Denný check-in a vývoj za 30 dní",
+                                    color = BeamColors.Fog,
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                            }
+                        }
+                    }
+                }
+
+                StaggeredEntrance(index = 2) {
+                    Spacer(Modifier.height(22.dp))
+                    BeamSectionLabel("Motív", modifier = Modifier.padding(start = 4.dp, top = 0.dp, bottom = 8.dp))
+                    BeamSurface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        contentPadding = PaddingValues(14.dp),
+                    ) {
+                        BEAM_THEMES.chunked(2).forEach { rowThemes ->
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                rowThemes.forEach { theme ->
+                                    val active = BeamColors.current.key == theme.key
+                                    val interaction = remember { MutableInteractionSource() }
+                                    val pressed by interaction.collectIsPressedAsState()
+                                    val scale by animateFloatAsState(if (pressed) 0.96f else 1f, spring(dampingRatio = 0.55f))
+                                    Column(
+                                        Modifier
+                                            .weight(1f)
+                                            .graphicsLayer {
+                                                scaleX = scale
+                                                scaleY = scale
+                                            }
+                                            .background(
+                                                if (active) theme.accent.copy(alpha = 0.14f) else BeamColors.Ink2,
+                                                RoundedCornerShape(14.dp),
+                                            )
+                                            .border(
+                                                1.dp,
+                                                if (active) theme.accent.copy(alpha = 0.55f) else BeamColors.Line,
+                                                RoundedCornerShape(14.dp),
+                                            )
+                                            .clickable(interactionSource = interaction, indication = null) {
+                                                BeamColors.apply(theme)
+                                                scope.launch { Locator.session.setTheme(theme.key) }
+                                            }
+                                            .padding(12.dp),
+                                    ) {
+                                        Row {
+                                            theme.wave.forEach { c ->
+                                                Box(
+                                                    Modifier
+                                                        .size(16.dp)
+                                                        .background(c, RoundedCornerShape(5.dp)),
+                                                )
+                                                Spacer(Modifier.width(5.dp))
+                                            }
+                                        }
+                                        Spacer(Modifier.height(9.dp))
+                                        Text(
+                                            theme.label,
+                                            color = if (active) BeamColors.Mist else BeamColors.Fog,
+                                            fontSize = 14.sp,
+                                            fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
+                                        )
+                                    }
+                                }
+                                if (rowThemes.size == 1) Spacer(Modifier.weight(1f))
+                            }
+                            Spacer(Modifier.height(10.dp))
+                        }
+                    }
+                }
+
+                StaggeredEntrance(index = 3) {
+                    BeamSectionLabel("Aktualizácie", modifier = Modifier.padding(start = 4.dp, top = 20.dp, bottom = 8.dp))
+                    UpdateCard(ctx = ctx)
+                }
+
+                StaggeredEntrance(index = 4) {
+                    BeamSectionLabel("Krízové linky", modifier = Modifier.padding(start = 4.dp, top = 20.dp, bottom = 8.dp))
+                    CrisisList()
+                }
+
+                StaggeredEntrance(index = 5) {
+                    BeamSectionLabel("Právne", modifier = Modifier.padding(start = 4.dp, top = 20.dp, bottom = 8.dp))
+                    BeamSurface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        contentPadding = PaddingValues(0.dp),
+                    ) {
+                        listOf(
+                            "Ochrana súkromia",
+                            "Všeobecné podmienky",
+                            "Zdravotný disclaimer",
+                        ).forEachIndexed { index, label ->
+                            Row(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .defaultMinSize(minHeight = 48.dp)
+                                    .clickable(onClick = onLegal)
+                                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                            ) {
+                                Icon(Icons.Outlined.Description, null, tint = BeamColors.Fog, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(12.dp))
+                                Text(label, color = BeamColors.Mist, fontSize = 15.sp)
+                            }
+                            if (index < 2) BeamDivider(color = BeamColors.Line.copy(alpha = 0.6f), modifier = Modifier.padding(horizontal = 14.dp))
+                        }
+                    }
+                }
+
+                StaggeredEntrance(index = 6) {
+                    Spacer(Modifier.height(24.dp))
                     BeamButton(
-                        label = if (saved) "Uložené" else if (saving) "Ukladám…" else "Uložiť",
+                        label = "Odhlásiť sa",
                         onClick = {
-                            saving = true
                             scope.launch {
-                                Locator.api.saveName(name.trim())
-                                saving = false
-                                saved = true
+                                Locator.session.clear()
+                                onLoggedOut()
                             }
                         },
-                        enabled = !saving,
-                        busy = saving,
+                        kind = BeamButtonKind.Ghost,
+                        icon = Icons.AutoMirrored.Rounded.Logout,
                         modifier = Modifier.fillMaxWidth(),
                     )
+                    Spacer(Modifier.height(24.dp))
                 }
-
-                BeamSectionLabel("Prehľad", modifier = Modifier.padding(start = 4.dp, top = 20.dp, bottom = 8.dp))
-                BeamSurface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    contentPadding = PaddingValues(16.dp),
-                    onClick = onPrehlad,
-                    onClickLabel = "Záznamy nálady",
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Outlined.Insights, null,
-                            tint = BeamColors.Accent, modifier = Modifier.size(18.dp),
-                        )
-                        Spacer(Modifier.width(12.dp))
-                        Column {
-                            Text(
-                                "Záznamy nálady",
-                                color = BeamColors.Mist,
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Medium,
-                            )
-                            Text(
-                                "Denný check-in a vývoj za 30 dní",
-                                color = BeamColors.Fog,
-                                style = MaterialTheme.typography.bodySmall,
-                            )
-                        }
-                    }
-                }
-
-                Spacer(Modifier.height(22.dp))
-                BeamSectionLabel("Motív", modifier = Modifier.padding(start = 4.dp, top = 0.dp, bottom = 8.dp))
-                BeamSurface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    contentPadding = PaddingValues(14.dp),
-                ) {
-                    BEAM_THEMES.chunked(2).forEach { rowThemes ->
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            rowThemes.forEach { theme ->
-                                val active = BeamColors.current.key == theme.key
-                                Column(
-                                    Modifier
-                                        .weight(1f)
-                                        .background(
-                                            if (active) theme.accent.copy(alpha = 0.14f) else BeamColors.Ink2,
-                                            RoundedCornerShape(14.dp),
-                                        )
-                                        .border(
-                                            1.dp,
-                                            if (active) theme.accent.copy(alpha = 0.55f) else BeamColors.Line,
-                                            RoundedCornerShape(14.dp),
-                                        )
-                                        .clickable {
-                                            BeamColors.apply(theme)
-                                            scope.launch { Locator.session.setTheme(theme.key) }
-                                        }
-                                        .padding(12.dp),
-                                ) {
-                                    Row {
-                                        theme.wave.forEach { c ->
-                                            Box(
-                                                Modifier
-                                                    .size(16.dp)
-                                                    .background(c, RoundedCornerShape(5.dp)),
-                                            )
-                                            Spacer(Modifier.width(5.dp))
-                                        }
-                                    }
-                                    Spacer(Modifier.height(9.dp))
-                                    Text(
-                                        theme.label,
-                                        color = if (active) BeamColors.Mist else BeamColors.Fog,
-                                        fontSize = 14.sp,
-                                        fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
-                                    )
-                                }
-                            }
-                            if (rowThemes.size == 1) Spacer(Modifier.weight(1f))
-                        }
-                        Spacer(Modifier.height(10.dp))
-                    }
-                }
-
-                BeamSectionLabel("Aktualizácie", modifier = Modifier.padding(start = 4.dp, top = 20.dp, bottom = 8.dp))
-                UpdateCard(ctx = ctx)
-
-                BeamSectionLabel("Krízové linky", modifier = Modifier.padding(start = 4.dp, top = 20.dp, bottom = 8.dp))
-                CrisisList()
-
-                BeamSectionLabel("Právne", modifier = Modifier.padding(start = 4.dp, top = 20.dp, bottom = 8.dp))
-                BeamSurface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    contentPadding = PaddingValues(0.dp),
-                ) {
-                    listOf(
-                        "Ochrana súkromia",
-                        "Všeobecné podmienky",
-                        "Zdravotný disclaimer",
-                    ).forEachIndexed { index, label ->
-                        Row(
-                            Modifier
-                                .fillMaxWidth()
-                                .defaultMinSize(minHeight = 48.dp)
-                                .clickable(onClick = onLegal)
-                                .padding(horizontal = 16.dp, vertical = 14.dp),
-                        ) {
-                            Icon(Icons.Outlined.Description, null, tint = BeamColors.Fog, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(12.dp))
-                            Text(label, color = BeamColors.Mist, fontSize = 15.sp)
-                        }
-                        if (index < 2) BeamDivider(color = BeamColors.Line.copy(alpha = 0.6f), modifier = Modifier.padding(horizontal = 14.dp))
-                    }
-                }
-
-                Spacer(Modifier.height(24.dp))
-                BeamButton(
-                    label = "Odhlásiť sa",
-                    onClick = {
-                        scope.launch {
-                            Locator.session.clear()
-                            onLoggedOut()
-                        }
-                    },
-                    kind = BeamButtonKind.Ghost,
-                    icon = Icons.AutoMirrored.Rounded.Logout,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Spacer(Modifier.height(24.dp))
             }
         }
     }

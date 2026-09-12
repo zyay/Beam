@@ -12,6 +12,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.activity.compose.BackHandler
 import com.beammental.app.ui.components.BeamChip
 import com.beammental.app.ui.components.BeamTopBar
 import com.beammental.app.ui.effects.MeshBackground
@@ -62,6 +63,7 @@ private val LEGAL_DOCS = listOf(
 
 @Composable
 fun LegalScreen(onBack: () -> Unit) {
+    BackHandler { onBack() }
     var selected by remember { mutableIntStateOf(0) }
     val doc = LEGAL_DOCS[selected]
 

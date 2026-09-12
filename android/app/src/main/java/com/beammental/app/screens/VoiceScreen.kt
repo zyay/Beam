@@ -2,6 +2,7 @@ package com.beammental.app.screens
 
 import android.Manifest
 import android.content.pm.PackageManager
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -47,8 +48,10 @@ import androidx.core.content.ContextCompat
 import com.beammental.app.BuildConfig
 import com.beammental.app.ui.components.CrisisCard
 import com.beammental.app.ui.effects.MeshBackground
+import com.beammental.app.ui.effects.StaggeredEntrance
 import com.beammental.app.ui.effects.OrbState
 import com.beammental.app.ui.effects.OrbStage
+import com.beammental.app.ui.effects.borderBeam
 import com.beammental.app.ui.theme.BeamColors
 import com.beammental.app.voice.LiveVoice
 import com.beammental.app.voice.OutputMode
@@ -98,6 +101,10 @@ fun VoiceScreen(onClose: () -> Unit, preview: VoiceSession? = null) {
             onDispose { v.stop() }
         }
     }
+    BackHandler {
+        v?.stop()
+        onClose()
+    }
     val callEnded = v == null || v.phase == VoicePhase.ENDED || v.phase == VoicePhase.FAILED
 
     // session timer, resets whenever a (new) call becomes active
@@ -126,211 +133,220 @@ fun VoiceScreen(onClose: () -> Unit, preview: VoiceSession? = null) {
             Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(horizontal = 20.dp)
         ) {
             // header
-            Row(
-                Modifier.fillMaxWidth().padding(top = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text("Hlasový rozhovor", fontWeight = FontWeight.SemiBold, color = BeamColors.Mist)
-                if (!callEnded) {
-                    Spacer(Modifier.width(8.dp))
-                    LiveDot()
-                }
-                Spacer(Modifier.weight(1f))
-                if (!callEnded && elapsedSec > 0) {
-                    Text(
-                        "%02d:%02d".format(elapsedSec / 60, elapsedSec % 60),
-                        color = BeamColors.Fog, fontSize = 13.sp,
+            StaggeredEntrance(index = 0) {
+                Row(
+                    Modifier.fillMaxWidth().padding(top = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("Hlasový rozhovor", fontWeight = FontWeight.SemiBold, color = BeamColors.Mist)
+                    if (!callEnded) {
+                        Spacer(Modifier.width(8.dp))
+                        LiveDot()
+                    }
+                    Spacer(Modifier.weight(1f))
+                    if (!callEnded && elapsedSec > 0) {
+                        Text(
+                            "%02d:%02d".format(elapsedSec / 60, elapsedSec % 60),
+                            color = BeamColors.Fog, fontSize = 13.sp,
+                        )
+                        Spacer(Modifier.width(14.dp))
+                    }
+                    Icon(
+                        Icons.Rounded.Close, "Zavrieť",
+                        tint = BeamColors.Fog,
+                        modifier = Modifier
+                            .size(26.dp)
+                            .clickable {
+                                v?.stop()
+                                onClose()
+                            },
                     )
-                    Spacer(Modifier.width(14.dp))
                 }
-                Icon(
-                    Icons.Rounded.Close, "Zavrieť",
-                    tint = BeamColors.Fog,
-                    modifier = Modifier
-                        .size(26.dp)
-                        .clickable {
-                            v?.stop()
-                            onClose()
-                        },
-                )
             }
 
             // stage
-            Column(
-                Modifier.weight(1f).fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-            ) {
-                if (!keyReady) {
-                    MissingKeyNotice()
-                } else if (!hasMic) {
-                    MicPermissionNotice { permissionLauncher.launch(Manifest.permission.RECORD_AUDIO) }
-                } else if (v != null && v.phase == VoicePhase.FAILED) {
-                    FailedNotice(
-                        reason = v.failure ?: "Niečo sa pokazilo.",
-                        onRetry = { voice = null; startVoice() },
-                    )
-                } else if (v != null) {
-                    val phase = v.phase
-                    val level by v.level.collectAsState()
-                    val ring by animateFloatAsState(level, spring(dampingRatio = 0.5f, stiffness = 700f))
-                    val orbState = when (phase) {
-                        VoicePhase.CONNECTING -> OrbState.Thinking
-                        VoicePhase.SPEAKING -> OrbState.Speaking
-                        VoicePhase.LISTENING -> if (muted) OrbState.Idle else OrbState.Listening
-                        else -> OrbState.Idle
-                    }
-                    // orb stage: the cloud is emissive, so it lights the air around it
-                    OrbStage(
-                        modifier = Modifier.size(340.dp),
-                        state = orbState,
-                        level = ring,
-                        accent = if (phase == VoicePhase.SPEAKING) BeamColors.Accent else Color(0xFFC3CBFF),
-                    )
+            StaggeredEntrance(index = 1) {
+                Column(
+                    Modifier.weight(1f).fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    if (!keyReady) {
+                        MissingKeyNotice()
+                    } else if (!hasMic) {
+                        MicPermissionNotice { permissionLauncher.launch(Manifest.permission.RECORD_AUDIO) }
+                    } else if (v != null && v.phase == VoicePhase.FAILED) {
+                        FailedNotice(
+                            reason = v.failure ?: "Niečo sa pokazilo.",
+                            onRetry = { voice = null; startVoice() },
+                        )
+                    } else if (v != null) {
+                        val phase = v.phase
+                        val level by v.level.collectAsState()
+                        val ring by animateFloatAsState(level, spring(dampingRatio = 0.5f, stiffness = 700f))
+                        val orbState = when (phase) {
+                            VoicePhase.CONNECTING -> OrbState.Thinking
+                            VoicePhase.SPEAKING -> OrbState.Speaking
+                            VoicePhase.LISTENING -> if (muted) OrbState.Idle else OrbState.Listening
+                            else -> OrbState.Idle
+                        }
+                        OrbStage(
+                            modifier = Modifier.size(340.dp),
+                            state = orbState,
+                            level = ring,
+                            accent = if (phase == VoicePhase.SPEAKING) BeamColors.Accent else Color(0xFFC3CBFF),
+                        )
 
-                    Spacer(Modifier.height(30.dp))
+                        Spacer(Modifier.height(30.dp))
 
-                    val status = when (phase) {
-                        VoicePhase.CONNECTING -> "Pripájam sa"
-                        VoicePhase.LISTENING -> if (muted) "Mikrofón stlmený" else "Počúvam ťa"
-                        VoicePhase.SPEAKING -> "Beam rozpráva"
-                        VoicePhase.ENDED -> "Hovor sa skončil"
-                        VoicePhase.FAILED -> v.failure ?: "Niečo sa pokazilo"
-                    }
-                    Text(
-                        status,
-                        color = BeamColors.Fog,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium,
-                        letterSpacing = 1.8.sp,
-                    )
-
-                    Spacer(Modifier.height(26.dp))
-
-                    // captions
-                    AnimatedVisibility(visible = v.userCaption.isNotBlank(), enter = fadeIn(tween(240)), exit = fadeOut(tween(400))) {
+                        val status = when (phase) {
+                            VoicePhase.CONNECTING -> "Pripájam sa"
+                            VoicePhase.LISTENING -> if (muted) "Mikrofón stlmený" else "Počúvam ťa"
+                            VoicePhase.SPEAKING -> "Beam rozpráva"
+                            VoicePhase.ENDED -> "Hovor sa skončil"
+                            VoicePhase.FAILED -> v.failure ?: "Niečo sa pokazilo"
+                        }
                         Text(
-                            "„${v.userCaption.trim()}",
+                            status,
                             color = BeamColors.Fog,
-                            fontStyle = FontStyle.Italic,
-                            fontSize = 15.sp,
-                            lineHeight = 21.sp,
-                            textAlign = TextAlign.Center,
-                            maxLines = 3,
-                            modifier = Modifier.fillMaxWidth(0.86f),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            letterSpacing = 1.8.sp,
                         )
-                    }
-                    AnimatedVisibility(visible = v.modelCaption.isNotBlank(), enter = fadeIn(tween(240)), exit = fadeOut(tween(600))) {
-                        Text(
-                            v.modelCaption.trim(),
-                            color = BeamColors.Mist,
-                            fontSize = 16.sp,
-                            lineHeight = 22.sp,
-                            textAlign = TextAlign.Center,
-                            maxLines = 4,
-                            modifier = Modifier.fillMaxWidth(0.86f),
-                        )
+
+                        Spacer(Modifier.height(26.dp))
+
+                        AnimatedVisibility(visible = v.userCaption.isNotBlank(), enter = fadeIn(tween(240)), exit = fadeOut(tween(400))) {
+                            Text(
+                                "„${v.userCaption.trim()}",
+                                color = BeamColors.Fog,
+                                fontStyle = FontStyle.Italic,
+                                fontSize = 15.sp,
+                                lineHeight = 21.sp,
+                                textAlign = TextAlign.Center,
+                                maxLines = 3,
+                                modifier = Modifier.fillMaxWidth(0.86f),
+                            )
+                        }
+                        AnimatedVisibility(visible = v.modelCaption.isNotBlank(), enter = fadeIn(tween(240)), exit = fadeOut(tween(600))) {
+                            Text(
+                                v.modelCaption.trim(),
+                                color = BeamColors.Mist,
+                                fontSize = 16.sp,
+                                lineHeight = 22.sp,
+                                textAlign = TextAlign.Center,
+                                maxLines = 4,
+                                modifier = Modifier.fillMaxWidth(0.86f),
+                            )
+                        }
                     }
                 }
             }
 
             // bottom bar
-            Column(
-                Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                if (v != null && v.phase == VoicePhase.ENDED) {
+            StaggeredEntrance(index = 2) {
+                Column(
+                    Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    if (v != null && v.phase == VoicePhase.ENDED) {
+                        Text(
+                            "Hlasový hovor sa ukončil. Môžeš to skúsiť znova, alebo sa vrátiť späť na písanie.",
+                            color = BeamColors.Fog, fontSize = 12.sp, textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 14.dp),
+                        )
+                    }
+                    if (v != null && !callEnded) {
+                        if (elapsedSec >= 840) {
+                            Text(
+                                "Hovor je už dlhý — ak sa spojenie preruší, klepni na „Skúsiť znova“.",
+                                color = BeamColors.Fog, fontSize = 12.sp, textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                            )
+                        }
+                        Row(
+                            Modifier.fillMaxWidth().padding(bottom = 14.dp),
+                            verticalAlignment = Alignment.Top,
+                            horizontalArrangement = Arrangement.spacedBy(26.dp, Alignment.CenterHorizontally),
+                        ) {
+                            CircleControl(
+                                icon = if (muted) Icons.Rounded.MicOff else Icons.Rounded.Mic,
+                                label = if (muted) "Zapnúť" else "Stlmiť",
+                                tint = if (muted) Color(0xFFFFC4CB) else BeamColors.Mist,
+                                background = if (muted) Color(0xFFB4525E).copy(alpha = 0.20f) else BeamColors.Card,
+                                borderColor = if (muted) Color(0xFFB4525E).copy(alpha = 0.55f) else BeamColors.Line,
+                                onClick = {
+                                    muted = !muted
+                                    v.muted = muted
+                                },
+                            )
+                            CircleControl(
+                                icon = Icons.Rounded.CallEnd,
+                                label = "Ukončiť",
+                                size = 74.dp,
+                                tint = Color(0xFFFFE1E4),
+                                background = Color(0xFFB4525E).copy(alpha = 0.30f),
+                                borderColor = Color(0xFFB4525E).copy(alpha = 0.72f),
+                                onClick = {
+                                    v.stop()
+                                    onClose()
+                                },
+                            )
+                            CircleControl(
+                                icon = if (outputMode == OutputMode.SPEAKER) {
+                                    Icons.AutoMirrored.Rounded.VolumeUp
+                                } else {
+                                    Icons.Rounded.Hearing
+                                },
+                                label = if (outputMode == OutputMode.SPEAKER) "Reproduktor" else "Slúchadlo",
+                                onClick = {
+                                    outputMode = if (outputMode == OutputMode.SPEAKER) OutputMode.EARPIECE else OutputMode.SPEAKER
+                                    v.applyOutputMode()
+                                },
+                            )
+                        }
+                    }
+                    if (callEnded) {
+                        val interaction = remember { MutableInteractionSource() }
+                        val pressed by interaction.collectIsPressedAsState()
+                        val scale by animateFloatAsState(if (pressed) 0.96f else 1f, spring(dampingRatio = 0.55f))
+                        Box(
+                            Modifier
+                                .fillMaxWidth()
+                                .graphicsLayer {
+                                    scaleX = scale
+                                    scaleY = scale
+                                }
+                                .background(BeamColors.Card, RoundedCornerShape(18.dp))
+                                .border(1.dp, BeamColors.Line, RoundedCornerShape(18.dp))
+                                .borderBeam(
+                                    size = com.beammental.app.ui.effects.BeamSize.MD,
+                                    shape = RoundedCornerShape(18.dp),
+                                    strength = 0.7f,
+                                )
+                                .clickable(interactionSource = interaction, indication = LocalIndication.current) {
+                                    v?.stop()
+                                    onClose()
+                                }
+                                .padding(vertical = 15.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                "Späť na chat",
+                                color = BeamColors.Mist,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 15.sp,
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(10.dp))
                     Text(
-                        "Hlasový hovor sa ukončil. Môžeš to skúsiť znova, alebo sa vrátiť späť na písanie.",
-                        color = BeamColors.Fog, fontSize = 12.sp, textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 14.dp),
+                        "Hovor sa prenáša online (Google). Nahrávka sa po hovore neukladá.",
+                        color = BeamColors.Fog.copy(alpha = 0.62f),
+                        fontSize = 11.sp,
+                        textAlign = TextAlign.Center,
                     )
                 }
-                if (v != null && !callEnded) {
-                    if (elapsedSec >= 840) {
-                        Text(
-                            "Hovor je už dlhý — ak sa spojenie preruší, klepni na „Skúsiť znova“.",
-                            color = BeamColors.Fog, fontSize = 12.sp, textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-                        )
-                    }
-                    Row(
-                        Modifier.fillMaxWidth().padding(bottom = 14.dp),
-                        verticalAlignment = Alignment.Top,
-                        horizontalArrangement = Arrangement.spacedBy(26.dp, Alignment.CenterHorizontally),
-                    ) {
-                        CircleControl(
-                            icon = if (muted) Icons.Rounded.MicOff else Icons.Rounded.Mic,
-                            label = if (muted) "Zapnúť" else "Stlmiť",
-                            tint = if (muted) Color(0xFFFFC4CB) else BeamColors.Mist,
-                            background = if (muted) Color(0xFFB4525E).copy(alpha = 0.20f) else BeamColors.Card,
-                            borderColor = if (muted) Color(0xFFB4525E).copy(alpha = 0.55f) else BeamColors.Line,
-                            onClick = {
-                                muted = !muted
-                                v.muted = muted
-                            },
-                        )
-                        CircleControl(
-                            icon = Icons.Rounded.CallEnd,
-                            label = "Ukončiť",
-                            size = 74.dp,
-                            tint = Color(0xFFFFE1E4),
-                            background = Color(0xFFB4525E).copy(alpha = 0.30f),
-                            borderColor = Color(0xFFB4525E).copy(alpha = 0.72f),
-                            onClick = {
-                                v.stop()
-                                onClose()
-                            },
-                        )
-                        CircleControl(
-                            icon = if (outputMode == OutputMode.SPEAKER) {
-                                Icons.AutoMirrored.Rounded.VolumeUp
-                            } else {
-                                Icons.Rounded.Hearing
-                            },
-                            label = if (outputMode == OutputMode.SPEAKER) "Reproduktor" else "Slúchadlo",
-                            onClick = {
-                                outputMode = if (outputMode == OutputMode.SPEAKER) OutputMode.EARPIECE else OutputMode.SPEAKER
-                                v.applyOutputMode()
-                            },
-                        )
-                    }
-                }
-                if (callEnded) {
-                    val interaction = remember { MutableInteractionSource() }
-                    val pressed by interaction.collectIsPressedAsState()
-                    val scale by animateFloatAsState(if (pressed) 0.96f else 1f, spring(dampingRatio = 0.55f))
-                    Box(
-                        Modifier
-                            .fillMaxWidth()
-                            .graphicsLayer {
-                                scaleX = scale
-                                scaleY = scale
-                            }
-                            .background(BeamColors.Card, RoundedCornerShape(18.dp))
-                            .border(1.dp, BeamColors.Line, RoundedCornerShape(18.dp))
-                            .clickable(interactionSource = interaction, indication = LocalIndication.current) {
-                                v?.stop()
-                                onClose()
-                            }
-                            .padding(vertical = 15.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            "Späť na chat",
-                            color = BeamColors.Mist,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 15.sp,
-                        )
-                    }
-                }
-                Spacer(Modifier.height(10.dp))
-                Text(
-                    "Hovor sa prenáša online (Google). Nahrávka sa po hovore neukladá.",
-                    color = BeamColors.Fog.copy(alpha = 0.62f),
-                    fontSize = 11.sp,
-                    textAlign = TextAlign.Center,
-                )
             }
         }
 

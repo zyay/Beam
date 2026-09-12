@@ -10,7 +10,9 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
@@ -57,6 +59,52 @@ private val NAV_ITEMS = listOf(
 )
 
 private val NAV_SCREENS = listOf(Screen.Chat, Screen.Prehlad, Screen.Settings)
+
+private fun screenDepth(s: Screen): Int = when (s) {
+    Screen.Auth, Screen.Onboarding -> 0
+    Screen.Chat -> 1
+    Screen.Prehlad, Screen.Settings -> 2
+    Screen.Legal -> 3
+    Screen.Voice -> -1
+}
+
+private fun screenTransition(
+    from: Screen,
+    to: Screen,
+): androidx.compose.animation.ContentTransform {
+    val slideDur = 320
+    val fadeDur = 200
+    if (to == Screen.Voice) {
+        return (
+            fadeIn(tween(fadeDur)) + slideInVertically(tween(slideDur)) { it }
+        ) togetherWith (
+            fadeOut(tween(fadeDur)) + slideOutVertically(tween(slideDur)) { it / 3 }
+        )
+    }
+    if (from == Screen.Voice) {
+        return (
+            fadeIn(tween(fadeDur)) + slideInVertically(tween(slideDur)) { it / 3 }
+        ) togetherWith (
+            fadeOut(tween(fadeDur)) + slideOutVertically(tween(slideDur)) { it }
+        )
+    }
+    val fromDepth = screenDepth(from)
+    val toDepth = screenDepth(to)
+    val goingDeeper = toDepth > fromDepth
+    return if (goingDeeper) {
+        (
+            fadeIn(tween(fadeDur)) + slideInHorizontally(tween(slideDur)) { it }
+        ) togetherWith (
+            fadeOut(tween(fadeDur)) + slideOutHorizontally(tween(slideDur)) { -it / 3 }
+        )
+    } else {
+        (
+            fadeIn(tween(fadeDur)) + slideInHorizontally(tween(slideDur)) { -it }
+        ) togetherWith (
+            fadeOut(tween(fadeDur)) + slideOutHorizontally(tween(slideDur)) { it / 3 }
+        )
+    }
+}
 
 class MainActivity : ComponentActivity() {
 
@@ -109,7 +157,7 @@ class MainActivity : ComponentActivity() {
                         AnimatedContent(
                             targetState = current,
                             transitionSpec = {
-                                fadeIn(tween(260)) togetherWith fadeOut(tween(200))
+                                screenTransition(initialState, targetState)
                             },
                             label = "nav",
                         ) { s ->

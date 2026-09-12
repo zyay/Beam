@@ -47,6 +47,8 @@ import com.beammental.app.ui.components.BeamIconButton
 import com.beammental.app.ui.components.BeamTextField
 import com.beammental.app.ui.effects.MascotBlob
 import com.beammental.app.ui.effects.MeshBackground
+import com.beammental.app.ui.effects.BeamSize
+import com.beammental.app.ui.effects.borderBeam
 import com.beammental.app.ui.theme.BeamColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -282,7 +284,11 @@ fun OnboardingScreen(onDone: () -> Unit) {
                         else -> StepShell("Hotovo, $name.", "Toto je tvoj profil — nájdeš ho aj v nastaveniach a môžeš ho kedykoľvek upraviť.") {
                             StaggerIn(0) {
                                 Row(
-                                    Modifier.fillMaxWidth().border(1.dp, BeamColors.Line, RoundedCornerShape(20.dp)).background(BeamColors.Card, RoundedCornerShape(20.dp)).padding(18.dp),
+                                    Modifier.fillMaxWidth()
+                                        .border(1.dp, BeamColors.Line, RoundedCornerShape(20.dp))
+                                        .background(BeamColors.Card, RoundedCornerShape(20.dp))
+                                        .borderBeam(size = BeamSize.MD, shape = RoundedCornerShape(20.dp), strength = 0.7f)
+                                        .padding(18.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
                                     MascotBlob(modifier = Modifier.size(56.dp), blobSize = 56.dp, animation = "happy")

@@ -21,7 +21,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.CircularProgressIndicator
+import com.beammental.app.ui.effects.BeamLoader
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -39,6 +39,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -46,6 +47,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import com.beammental.app.ui.theme.BeamColors
 
 /**
@@ -88,6 +90,7 @@ fun BeamButton(
 ) {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
+    val haptic = LocalHapticFeedback.current
     val squeeze by animateFloatAsState(
         targetValue = if (pressed && enabled && !busy) 0.97f else 1f,
         animationSpec = spring(dampingRatio = 0.6f, stiffness = 420f),
@@ -131,17 +134,19 @@ fun BeamButton(
                 indication = LocalIndication.current,
                 enabled = enabled && !busy,
                 role = Role.Button,
-                onClick = onClick,
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onClick()
+                },
             )
             .padding(contentPadding),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,
     ) {
         when {
-            busy -> CircularProgressIndicator(
-                modifier = Modifier.size(18.dp),
+            busy -> BeamLoader(
+                size = 18.dp,
                 color = content,
-                strokeWidth = 2.dp,
             )
             icon != null -> {
                 Icon(icon, null, tint = content, modifier = Modifier.size(18.dp))
@@ -182,6 +187,7 @@ fun BeamIconButton(
 ) {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
+    val haptic = LocalHapticFeedback.current
     val squeeze by animateFloatAsState(
         targetValue = if (pressed && enabled) 0.9f else 1f,
         animationSpec = spring(dampingRatio = 0.55f, stiffness = 420f),
@@ -199,7 +205,10 @@ fun BeamIconButton(
                 enabled = enabled,
                 onClickLabel = contentDescription,
                 role = Role.Button,
-                onClick = onClick,
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onClick()
+                },
             ),
         contentAlignment = Alignment.Center,
     ) {
@@ -234,6 +243,7 @@ fun BeamChip(
 ) {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
+    val haptic = LocalHapticFeedback.current
     val squeeze by animateFloatAsState(
         targetValue = if (pressed && enabled) 0.96f else 1f,
         animationSpec = spring(dampingRatio = 0.55f, stiffness = 380f),
@@ -262,7 +272,10 @@ fun BeamChip(
                 indication = LocalIndication.current,
                 enabled = enabled,
                 role = Role.Checkbox,
-                onClick = onClick,
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onClick()
+                },
             )
             .padding(horizontal = 18.dp),
         verticalAlignment = Alignment.CenterVertically,

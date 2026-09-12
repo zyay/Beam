@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  ArrowLeft,
   Check,
   IdentificationCard,
   Microphone,
@@ -63,14 +62,7 @@ export default function SettingsClient({
 
   return (
     <main className="mx-auto min-h-dvh w-full max-w-[560px] px-5 py-8">
-      <div className="mb-8 flex items-center justify-between">
-        <Link
-          href="/chat"
-          className="flex items-center gap-2 text-sm text-fog transition-colors hover:text-mist"
-        >
-          <ArrowLeft size={16} />
-          Späť do chatu
-        </Link>
+      <div className="mb-8 flex items-center justify-end">
         <BeamMark size={22} />
       </div>
 

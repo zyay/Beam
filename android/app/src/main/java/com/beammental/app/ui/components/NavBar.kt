@@ -24,6 +24,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.ui.text.font.FontWeight
@@ -141,6 +143,7 @@ private fun NavCell(
     modifier: Modifier = Modifier,
 ) {
     val interaction = remember { MutableInteractionSource() }
+    val haptic = LocalHapticFeedback.current
     val iconInk by animateColorAsState(
         targetValue = if (selected) BeamColors.Accent else BeamColors.Fog,
         animationSpec = tween(250),
@@ -158,7 +161,10 @@ private fun NavCell(
             interactionSource = interaction,
             indication = LocalIndication.current,
             role = Role.Tab,
-            onClick = onSelect,
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onSelect()
+            },
         ),
         contentAlignment = Alignment.Center,
     ) {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { BorderBeam } from "border-beam";
 import { Shdr21 } from "@/components/ui/shdr-21";
 
 /** Slovak warm-friend system instruction. Mirrors the Android LiveVoice one
@@ -437,13 +438,6 @@ export default function HlasClient({ name }: { name: string }) {
 
       {/* top bar */}
       <header className="relative z-10 flex items-center justify-between px-6 pt-6 sm:px-10">
-        <a
-          href="/chat"
-          className="text-sm text-fog transition-colors hover:text-mist"
-          aria-label="Späť na chat"
-        >
-          ← Chat
-        </a>
         <div className="flex items-center gap-2 text-xs text-fog">
           <span
             className={
@@ -495,16 +489,20 @@ export default function HlasClient({ name }: { name: string }) {
         {/* captions */}
         <div className="flex w-full max-w-xl flex-col gap-2 text-sm">
           {modelCaption && (
+            <BorderBeam size="md" colorVariant="colorful" strength={0.7} theme="dark">
             <div className="rounded-2xl border border-line/60 bg-card/70 px-4 py-3 text-mist">
               <div className="mb-1 text-[10px] uppercase tracking-widest text-fog">Beam</div>
               {modelCaption}
             </div>
+            </BorderBeam>
           )}
           {userCaption && (
+            <BorderBeam size="md" colorVariant="colorful" strength={0.7} theme="dark">
             <div className="rounded-2xl border border-line/60 bg-card/40 px-4 py-3 text-right text-fog">
               <div className="mb-1 text-[10px] uppercase tracking-widest">Ty</div>
               {userCaption}
             </div>
+            </BorderBeam>
           )}
         </div>
 
@@ -547,6 +545,7 @@ export default function HlasClient({ name }: { name: string }) {
           something dangerous, with hotline numbers front-and-centre. */}
       {crisis && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/85 p-6 backdrop-blur-md">
+          <BorderBeam size="md" colorVariant="colorful" strength={0.7} theme="dark">
           <div className="w-full max-w-md rounded-3xl border border-rose-400/30 bg-ink-2 p-7 shadow-2xl">
             <h2 className="text-xl font-semibold text-mist">Si tu pre seba. Nie si na to sám/sama.</h2>
             <p className="mt-3 text-sm text-fog">
@@ -583,6 +582,7 @@ export default function HlasClient({ name }: { name: string }) {
               Zavrieť
             </button>
           </div>
+          </BorderBeam>
         </div>
       )}
     </main>

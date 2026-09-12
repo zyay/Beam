@@ -65,6 +65,7 @@ import com.beammental.app.ui.components.CRISIS_TEXT
 import com.beammental.app.ui.components.CrisisCard
 import com.beammental.app.ui.effects.MascotBlob
 import com.beammental.app.ui.effects.MeshBackground
+import com.beammental.app.ui.effects.SlideInEntrance
 import com.beammental.app.ui.theme.BeamColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -293,65 +294,71 @@ fun ChatScreen(onVoice: () -> Unit) {
             ) {
                 itemsIndexed(messages, key = { i, _ -> i }) { index, (text, role) ->
                     when (role) {
-                        "user" -> Row(
-                            Modifier.fillMaxWidth().animateItem(),
-                            horizontalArrangement = Arrangement.End,
-                            verticalAlignment = Alignment.Bottom,
-                        ) {
-                            Text(
-                                text,
-                                color = BeamColors.AccentInk,
-                                fontSize = 15.sp,
-                                lineHeight = 22.sp,
-                                modifier = Modifier
-                                    .fillMaxWidth(0.84f)
-                                    .background(
-                                        Brush.verticalGradient(
-                                            listOf(
-                                                BeamColors.Accent,
-                                                BeamColors.Accent.copy(alpha = 0.92f),
+                        "user" -> SlideInEntrance(fromEnd = true) {
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End,
+                                verticalAlignment = Alignment.Bottom,
+                            ) {
+                                Text(
+                                    text,
+                                    color = BeamColors.AccentInk,
+                                    fontSize = 15.sp,
+                                    lineHeight = 22.sp,
+                                    modifier = Modifier
+                                        .fillMaxWidth(0.84f)
+                                        .background(
+                                            Brush.verticalGradient(
+                                                listOf(
+                                                    BeamColors.Accent,
+                                                    BeamColors.Accent.copy(alpha = 0.92f),
+                                                ),
                                             ),
-                                        ),
-                                        RoundedCornerShape(
-                                            topStart = 18.dp,
-                                            topEnd = 18.dp,
-                                            bottomStart = 18.dp,
-                                            bottomEnd = 5.dp,
-                                        ),
-                                    )
-                                    .padding(horizontal = 14.dp, vertical = 11.dp),
-                            )
+                                            RoundedCornerShape(
+                                                topStart = 18.dp,
+                                                topEnd = 18.dp,
+                                                bottomStart = 18.dp,
+                                                bottomEnd = 5.dp,
+                                            ),
+                                        )
+                                        .padding(horizontal = 14.dp, vertical = 11.dp),
+                                )
+                            }
                         }
-                        "assistant:crisis" -> Box(Modifier.fillMaxWidth().animateItem()) { CrisisCard() }
+                        "assistant:crisis" -> SlideInEntrance(fromEnd = false) {
+                            Box(Modifier.fillMaxWidth()) { CrisisCard() }
+                        }
                         else -> {
                             // blinking caret while the answer streams in
                             val showCaret = busy && index == messages.lastIndex
-                            Row(
-                                Modifier.fillMaxWidth().animateItem(),
-                                verticalAlignment = Alignment.Top,
-                            ) {
-                                Box(
-                                    Modifier
-                                        .padding(top = 9.dp, end = 9.dp)
-                                        .size(6.dp)
-                                        .background(BeamColors.Accent, CircleShape),
-                                )
-                                Column(Modifier.fillMaxWidth(0.92f)) {
-                                    Text(
-                                        text,
-                                        color = BeamColors.Mist,
-                                        fontSize = 15.sp,
-                                        lineHeight = 23.sp,
-                                        letterSpacing = 0.1.sp,
+                            SlideInEntrance(fromEnd = false) {
+                                Row(
+                                    Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.Top,
+                                ) {
+                                    Box(
+                                        Modifier
+                                            .padding(top = 9.dp, end = 9.dp)
+                                            .size(6.dp)
+                                            .background(BeamColors.Accent, CircleShape),
                                     )
-                                    if (showCaret) {
-                                        Box(
-                                            Modifier
-                                                .padding(top = 3.dp)
-                                                .size(width = 7.dp, height = 16.dp)
-                                                .alpha(caretAlpha)
-                                                .background(BeamColors.Accent),
+                                    Column(Modifier.fillMaxWidth(0.92f)) {
+                                        Text(
+                                            text,
+                                            color = BeamColors.Mist,
+                                            fontSize = 15.sp,
+                                            lineHeight = 23.sp,
+                                            letterSpacing = 0.1.sp,
                                         )
+                                        if (showCaret) {
+                                            Box(
+                                                Modifier
+                                                    .padding(top = 3.dp)
+                                                    .size(width = 7.dp, height = 16.dp)
+                                                    .alpha(caretAlpha)
+                                                    .background(BeamColors.Accent),
+                                            )
+                                        }
                                     }
                                 }
                             }

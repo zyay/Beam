@@ -38,6 +38,8 @@ import com.beammental.app.ui.components.BeamButton
 import com.beammental.app.ui.components.BeamTextField
 import com.beammental.app.ui.effects.MascotBlob
 import com.beammental.app.ui.effects.MeshBackground
+import com.beammental.app.ui.effects.BeamSize
+import com.beammental.app.ui.effects.borderBeam
 import com.beammental.app.ui.theme.BeamColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -115,6 +117,7 @@ fun AuthScreen(onAuthed: (onboarded: Boolean) -> Unit) {
                                 .fillMaxWidth()
                                 .border(1.dp, BeamColors.Line, RoundedCornerShape(24.dp))
                                 .background(BeamColors.Card, RoundedCornerShape(24.dp))
+                                .borderBeam(size = BeamSize.MD, shape = RoundedCornerShape(24.dp), strength = 0.7f)
                                 .padding(4.dp),
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                         ) {

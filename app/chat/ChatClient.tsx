@@ -2,17 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import {
-  Gear,
-  Microphone,
-  PhoneCall,
   Plus,
   PaperPlaneRight,
+  PhoneCall,
   Warning,
 } from "@phosphor-icons/react";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
+import { BorderBeam } from "border-beam";
 
 const Mascot = dynamic(() => import("@/components/mascot/Mascot"), { ssr: false });
 import ThinkingOrb from "@/components/effects/ThinkingOrb";
@@ -104,6 +102,7 @@ export default function ChatClient({ name }: { name: string }) {
   }
 
   return (
+    <BorderBeam size="md" colorVariant="colorful" strength={0.7} theme="dark">
     <main className="relative mx-auto flex h-dvh max-w-[760px] flex-col px-4">
       {/* header */}
       <header className="flex items-center justify-between border-b border-line py-3.5">
@@ -114,29 +113,13 @@ export default function ChatClient({ name }: { name: string }) {
           <span className="font-semibold tracking-tight">Beam</span>
           <span className="text-sm text-fog">· {name}</span>
         </div>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={newChat}
-            title="Nový rozhovor"
-            className="rounded-full p-2.5 text-fog transition-colors hover:bg-white/5 hover:text-mist"
-          >
-            <Plus size={19} />
-          </button>
-          <Link
-            href="/hlas"
-            title="Hlasový hovor"
-            className="rounded-full p-2.5 text-fog transition-colors hover:bg-white/5 hover:text-mist"
-          >
-            <Microphone size={19} />
-          </Link>
-          <Link
-            href="/nastavenia"
-            title="Nastavenia"
-            className="rounded-full p-2.5 text-fog transition-colors hover:bg-white/5 hover:text-mist"
-          >
-            <Gear size={19} />
-          </Link>
-        </div>
+        <button
+          onClick={newChat}
+          title="Nový rozhovor"
+          className="rounded-full p-2.5 text-fog transition-colors hover:bg-white/5 hover:text-mist"
+        >
+          <Plus size={19} />
+        </button>
       </header>
 
       {/* messages */}
@@ -234,11 +217,13 @@ export default function ChatClient({ name }: { name: string }) {
         </button>
       </form>
     </main>
+    </BorderBeam>
   );
 }
 
 function CrisisCard() {
   return (
+    <BorderBeam size="sm" colorVariant="colorful" strength={0.7} theme="dark">
     <div className="w-full rounded-2xl border border-[rgba(255,143,214,0.35)] bg-[rgba(255,143,214,0.06)] p-4">
       <p className="flex items-center gap-2 text-sm font-semibold text-[#ffb3d9]">
         <Warning size={17} weight="fill" />
@@ -262,6 +247,7 @@ function CrisisCard() {
         Som len chatbot — v kríze ti musí pomôcť človek. Zavolaj, nie je to zlé rozhodnutie.
       </p>
     </div>
+    </BorderBeam>
   );
 }
 
